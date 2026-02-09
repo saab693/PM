@@ -105,7 +105,8 @@
     Papa.parse(f, {
       header: true,
       skipEmptyLines: true,
-      complete: r => { data = r.data; }
+      transformHeader: h => String(h || "").trim(), // removes hidden spaces in headers
+      complete: r => { data = r.data || []; }
     });
   });
 
@@ -117,22 +118,67 @@
     return Number.isFinite(n) ? n : NaN;
   }
 
+  // Pick first matching key that exists in the row
+  function pick(r, keys){
+    for (const k of keys){
+      if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") return r[k];
+    }
+    return undefined;
+  }
+
+  // Detect actual header names present in this file (once)
+  function detectKeys(){
+    const keys = Object.keys(data[0] || {});
+    const has = (k) => keys.includes(k);
+
+    // Candidate lists (most common exports)
+    const holdKeys = [
+      "SH %","SH%","Serve Hold %","ServeHold%","Service Hold %","Service Hold","Hold %","Hold%","Hold"
+    ];
+
+    const ophKeys = [
+      "OpH %","OpH%","Opp Hold %","OppHold %","Opp Hold%","Opponent Hold %","Opponent Hold","Opp Hold"
+    ];
+
+    const playerKeys = [
+      "Player","player","Name","name"
+    ];
+
+    // Choose the first candidate that exists in the file, else fall back to using pick() row-by-row
+    const holdKey = holdKeys.find(has) || null;
+    const ophKey  = ophKeys.find(has)  || null;
+    const playerKey = playerKeys.find(has) || null;
+
+    return { holdKey, ophKey, playerKey, holdKeys, ophKeys, playerKeys };
+  }
+
   function run(){
     const tour = document.getElementById('tour').value;
     const out = [];
 
+    if (!data || data.length === 0){
+      document.getElementById('result').innerHTML = "";
+      return;
+    }
+
+    const dk = detectKeys();
+
     data.forEach(r => {
-      // Expect columns named exactly: "SH %" and "OpH %"
-      const hold = num(r["SH %"]);
-      const oph  = num(r["OpH %"]);
+      const holdRaw = dk.holdKey ? r[dk.holdKey] : pick(r, dk.holdKeys);
+      const ophRaw  = dk.ophKey  ? r[dk.ophKey]  : pick(r, dk.ophKeys);
+
+      const hold = num(holdRaw);
+      const oph  = num(ophRaw);
+
       if (!Number.isFinite(hold) || !Number.isFinite(oph)) return;
 
       const brk = 100 - oph;
       const comb = hold + brk;
 
       if (hold >= HOLD[tour] && comb >= COMBINED){
+        const p = dk.playerKey ? r[dk.playerKey] : pick(r, dk.playerKeys);
         out.push({
-          Player: r.Player ?? r.player ?? "",
+          Player: p ?? "",
           Hold: hold.toFixed(2),
           Break: brk.toFixed(2),
           Combined: comb.toFixed(2)
@@ -140,7 +186,6 @@
       }
     });
 
-    // Render results
     let html = `
       <table>
         <tr>
