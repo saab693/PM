@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PM Filter</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#6a00ff">
+<link rel="icon" href="PM_icon.png">
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+body{font-family:system-ui;background:#0f0f14;color:#eee;margin:20px}
+button{padding:12px;border-radius:10px;background:#6a00ff;color:white;border:none}
+select,input{padding:10px;margin:5px}
+table{border-collapse:collapse;width:100%;margin-top:20px}
+td,th{border-bottom:1px solid #333;padding:8px;text-align:left}
+</style>
+</head>
+
+<body>
+
+<h2>PM Filter</h2>
+
+<input type="file" id="file">
+
+<br><br>
+
+<label>Tour:</label>
+<select id="tour">
+<option>WTA</option>
+<option>ATP</option>
+<option>CH</option>
+</select>
+
+<button onclick="run()">Run Filter</button>
+
+<div id="result"></div>
+
+<script>
+const HOLD={WTA:67,ATP:80,CH:80}
+const COMBINED=105
+let data=[]
+
+document.getElementById('file').addEventListener('change',e=>{
+Papa.parse(e.target.files[0],{
+header:true,
+complete:r=>data=r.data
+})
+})
+
+function num(x){return parseFloat(String(x).replace('%',''))}
+
+function run(){
+let out=[]
+let tour=document.getElementById('tour').value
+
+data.forEach(r=>{
+let hold=num(r["SH %"])
+let brk=100-num(r["OpH %"])
+let comb=hold+brk
+
+if(hold>=HOLD[tour] && comb>=COMBINED){
+r["Hold"]=hold.toFixed(2)
+r["Break"]=brk.toFixed(2)
+r["Combined"]=comb.toFixed(2)
+out.push(r)
+}
+})
+
+let html="<table><tr><th>Player</th><th>Hold</th><th>Break</th><th>Combined</th></tr>"
+out.forEach(r=>html+=`<tr><td>${r.Player}</td><td>${r.Hold}</td><td>${r.Break}</td><td>${r.Combined}</td></tr>`)
+html+="</table>"
+document.getElementById('result').innerHTML=html
+}
+</script>
+
+</body>
+</html>
