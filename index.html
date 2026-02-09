@@ -12,69 +12,165 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
-body{font-family:system-ui;background:#0f0f14;color:#eee;margin:20px}
-button{padding:12px;border-radius:10px;background:#6a00ff;color:white;border:none}
-select,input{padding:10px;margin:5px}
-table{border-collapse:collapse;width:100%;margin-top:20px}
-td,th{border-bottom:1px solid #333;padding:8px;text-align:left}
+  body{
+    font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:#0f0f14;
+    color:#eee;
+    margin:0;
+    padding:20px;
+  }
+  h1{
+    margin:0 0 18px 0;
+    font-size:34px;
+    font-weight:800;
+  }
+  .bar{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:18px 0 18px 0;
+  }
+  label{font-size:18px}
+  select,input{
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #2a2a3a;
+    background:#151522;
+    color:#eee;
+    font-size:16px;
+  }
+  button{
+    padding:12px 18px;
+    border-radius:12px;
+    background:#6a00ff;
+    color:white;
+    border:none;
+    font-size:16px;
+    font-weight:700;
+  }
+  .hint{color:#b7b7c8; margin-top:6px}
+  table{
+    border-collapse:collapse;
+    width:100%;
+    margin-top:20px;
+    background:#151522;
+    border:1px solid #2a2a3a;
+    border-radius:12px;
+    overflow:hidden;
+  }
+  th, td{
+    border-bottom:1px solid #2a2a3a;
+    padding:12px 10px;
+    text-align:left;
+    font-size:16px;
+  }
+  th{font-size:18px}
+  tr:last-child td{border-bottom:none}
 </style>
 </head>
 
 <body>
 
-<h2>PM Filter</h2>
+<h1>PM Filter</h1>
 
-<input type="file" id="file">
+<div class="bar">
+  <input type="file" id="file" accept=".csv">
+</div>
 
-<br><br>
+<div class="bar">
+  <label for="tour">Tour:</label>
+  <select id="tour">
+    <option value="WTA">WTA</option>
+    <option value="ATP">ATP</option>
+    <option value="CH">Challenger</option>
+  </select>
 
-<label>Tour:</label>
-<select id="tour">
-<option>WTA</option>
-<option>ATP</option>
-<option>CH</option>
-</select>
+  <button onclick="run()">Run Filter</button>
+</div>
 
-<button onclick="run()">Run Filter</button>
+<div class="hint">
+  Rules: WTA Hold ≥ 67 · ATP/Ch Hold ≥ 80 · Combined ≥ 100<br>
+  Break = 100 − OpH · Combined = Hold + Break
+</div>
 
 <div id="result"></div>
 
 <script>
-const HOLD={WTA:67,ATP:80,CH:80}
-const COMBINED=105
-let data=[]
+  // Thresholds
+  const HOLD = { WTA: 67, ATP: 80, CH: 80 };
+  const COMBINED = 100;
 
-document.getElementById('file').addEventListener('change',e=>{
-Papa.parse(e.target.files[0],{
-header:true,
-complete:r=>data=r.data
-})
-})
+  let data = [];
 
-function num(x){return parseFloat(String(x).replace('%',''))}
+  // Parse CSV on upload
+  document.getElementById('file').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
 
-function run(){
-let out=[]
-let tour=document.getElementById('tour').value
+    Papa.parse(f, {
+      header: true,
+      skipEmptyLines: true,
+      complete: r => { data = r.data; }
+    });
+  });
 
-data.forEach(r=>{
-let hold=num(r["SH %"])
-let brk=100-num(r["OpH %"])
-let comb=hold+brk
+  // Convert values like "76.2" or "76.2%" to number
+  function num(x){
+    if (x === null || x === undefined) return NaN;
+    const s = String(x).replace('%','').trim();
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
 
-if(hold>=HOLD[tour] && comb>=COMBINED){
-r["Hold"]=hold.toFixed(2)
-r["Break"]=brk.toFixed(2)
-r["Combined"]=comb.toFixed(2)
-out.push(r)
-}
-})
+  function run(){
+    const tour = document.getElementById('tour').value;
+    const out = [];
 
-let html="<table><tr><th>Player</th><th>Hold</th><th>Break</th><th>Combined</th></tr>"
-out.forEach(r=>html+=`<tr><td>${r.Player}</td><td>${r.Hold}</td><td>${r.Break}</td><td>${r.Combined}</td></tr>`)
-html+="</table>"
-document.getElementById('result').innerHTML=html
-}
+    data.forEach(r => {
+      // Expect columns named exactly: "SH %" and "OpH %"
+      const hold = num(r["SH %"]);
+      const oph  = num(r["OpH %"]);
+      if (!Number.isFinite(hold) || !Number.isFinite(oph)) return;
+
+      const brk = 100 - oph;
+      const comb = hold + brk;
+
+      if (hold >= HOLD[tour] && comb >= COMBINED){
+        out.push({
+          Player: r.Player ?? r.player ?? "",
+          Hold: hold.toFixed(2),
+          Break: brk.toFixed(2),
+          Combined: comb.toFixed(2)
+        });
+      }
+    });
+
+    // Render results
+    let html = `
+      <table>
+        <tr>
+          <th>Player</th>
+          <th>Hold</th>
+          <th>Break</th>
+          <th>Combined</th>
+        </tr>
+    `;
+
+    out.forEach(r => {
+      html += `
+        <tr>
+          <td>${r.Player}</td>
+          <td>${r.Hold}</td>
+          <td>${r.Break}</td>
+          <td>${r.Combined}</td>
+        </tr>
+      `;
+    });
+
+    html += `</table>`;
+    document.getElementById('result').innerHTML = html;
+  }
 </script>
 
 </body>
