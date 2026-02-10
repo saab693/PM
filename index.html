@@ -42,7 +42,6 @@
     }
     .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
     .row + .row{margin-top:14px}
-    label{font-size:14px;color:var(--muted);display:block}
     .hint{font-size:13px;color:var(--muted)}
     input[type="file"]{color:var(--muted)}
     select,input[type="number"]{
@@ -69,7 +68,7 @@
     .btn:active{transform:translateY(1px)}
     .error{color:#ff7b7b;font-size:14px;margin-top:12px;white-space:pre-wrap}
 
-    /* Important: horizontal scroll for small screens */
+    /* horizontal scroll on mobile */
     .tableWrap{
       margin-top:16px;
       border-radius:16px;
@@ -78,11 +77,10 @@
       -webkit-overflow-scrolling:touch;
       background:rgba(10,10,16,.45);
     }
-
     table{
       width:100%;
       border-collapse:collapse;
-      min-width:620px; /* forces a swipe-scroll on phones so all columns stay accessible */
+      min-width:620px;
     }
     thead th{
       text-align:left;
@@ -102,28 +100,24 @@
     }
     tbody tr:last-child td{border-bottom:0}
 
-    /* Player cell layout: name can wrap within its own box */
     .playerCell{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      min-width:240px; /* enough room for name */
+      min-width:240px;
     }
     .pname{
       font-weight:650;
-      white-space:normal;   /* allow wrap */
+      white-space:normal;
       line-height:1.15;
-      max-width:170px;      /* keeps it from pushing table wide */
+      max-width:170px;
     }
 
-    /* Compact Flashscore icon button */
     .fsBtn{
-      width:38px;
-      height:38px;
+      width:38px;height:38px;
       display:inline-flex;
-      align-items:center;
-      justify-content:center;
+      align-items:center;justify-content:center;
       background:rgba(255,255,255,.06);
       border:1px solid var(--line);
       color:var(--text);
@@ -131,9 +125,9 @@
       cursor:pointer;
       font-size:18px;
       flex:0 0 auto;
+      -webkit-tap-highlight-color:transparent;
     }
     .fsBtn:active{transform:translateY(1px)}
-    .fsBtn[title]{-webkit-tap-highlight-color:transparent}
 
     .toast{
       position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
@@ -149,7 +143,6 @@
     }
     .toast.show{opacity:1}
 
-    /* Small helper: subtle hint that table can scroll (only when it scrolls) */
     .scrollHint{
       margin-top:10px;
       color:var(--muted);
@@ -218,7 +211,6 @@
   const HOLD_THRESH = { WTA: 66, ATP: 78, CH: 80 };
   const COMBINED_MIN = 100;
 
-  // Helpers
   const $ = (id) => document.getElementById(id);
 
   function showToast(msg){
@@ -256,8 +248,8 @@
       ta.select();
       try{
         document.execCommand("copy");
-        showToast("Copied name");
         document.body.removeChild(ta);
+        showToast("Copied name");
         return true;
       }catch(err){
         document.body.removeChild(ta);
@@ -270,6 +262,38 @@
   function flashscoreSearchUrl(playerName){
     const q = encodeURIComponent(playerName);
     return `https://www.flashscore.com/search/?q=${q}`;
+  }
+
+  // Key fix: try to open the Flashscore APP via Android Intent,
+  // otherwise fall back to normal browser. This avoids Flashscore blocking WebViews.
+  function openFlashscore(playerName){
+    const url = flashscoreSearchUrl(playerName);
+
+    // Flashscore Android package (from your Play Store link)
+    const pkg = "eu.livesport.FlashScore_com";
+
+    // Intent with browser fallback (NOT Play Store)
+    const intentUrl =
+      `intent://www.flashscore.com/search/?q=${encodeURIComponent(playerName)}` +
+      `#Intent;scheme=https;package=${pkg};` +
+      `S.browser_fallback_url=${encodeURIComponent(url)};end`;
+
+    // Try intent first (should open app if link handling is enabled)
+    try{
+      window.location.href = intentUrl;
+    }catch(e){
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    // If the intent doesn’t resolve, the fallback should open.
+    // (We still keep a secondary fallback just in case.)
+    setTimeout(() => {
+      // If user is still on our page, open browser as a backup
+      // (Some devices ignore the fallback_url parameter)
+      try{
+        window.open(url, "_blank", "noopener,noreferrer");
+      }catch(_){}
+    }, 600);
   }
 
   function clearOutput(){
@@ -291,7 +315,6 @@
     const wrap = $("result");
     const hint = $("scrollHint");
     if (wrap.style.display === "none") { hint.style.display = "none"; return; }
-    // If content overflows horizontally, show hint.
     hint.style.display = (wrap.scrollWidth > wrap.clientWidth + 2) ? "block" : "none";
   }
 
@@ -325,11 +348,10 @@
 
             const odds = num(pick(r0, ["Odds","odds","Price","price"]));
             if (!Number.isFinite(odds)) continue;
-
             if (odds > maxOdds) continue;
 
             const hold = num(pick(r0, ["SH %","SH%","Hold","Hold %","Hold%","Service Hold","Service Hold %"]));
-            const opHold = num(pick(r0, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold","OppHold","OppHold %"]));
+            const opHold = num(pick(r0, ["OpH %","OpH%","Opponent hold","Opponent Hold","Opponent Hold %","Opp Hold","OppHold","OppHold %"]));
             if (!Number.isFinite(hold) || !Number.isFinite(opHold)) continue;
 
             const brk = 100 - opHold;
@@ -359,11 +381,11 @@
             const btn = document.createElement("button");
             btn.className = "fsBtn";
             btn.type = "button";
-            btn.title = "Flashscore (copies name)";
+            btn.title = "Open Flashscore (copies name)";
             btn.textContent = "⚡";
             btn.addEventListener("click", async () => {
               await copyText(r.player);
-              window.open(flashscoreSearchUrl(r.player), "_blank", "noopener,noreferrer");
+              openFlashscore(r.player);
             });
 
             wrap.appendChild(name);
