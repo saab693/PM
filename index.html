@@ -40,9 +40,10 @@
       padding:18px;
       box-shadow:0 16px 40px rgba(0,0,0,.35);
     }
-    .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+    .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
     .row + .row{margin-top:14px}
-    label{font-size:14px;color:var(--muted)}
+    label{font-size:14px;color:var(--muted);display:block}
+    .hint{font-size:13px;color:var(--muted)}
     input[type="file"]{color:var(--muted)}
     select,input[type="number"]{
       background:rgba(255,255,255,.04);
@@ -66,10 +67,23 @@
       box-shadow:0 10px 20px rgba(106,0,255,.25);
     }
     .btn:active{transform:translateY(1px)}
-    .hint{font-size:13px;color:var(--muted)}
     .error{color:#ff7b7b;font-size:14px;margin-top:12px;white-space:pre-wrap}
-    .tableWrap{margin-top:16px;overflow:hidden;border-radius:16px;border:1px solid var(--line)}
-    table{width:100%;border-collapse:collapse;background:rgba(10,10,16,.45)}
+
+    /* Important: horizontal scroll for small screens */
+    .tableWrap{
+      margin-top:16px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      background:rgba(10,10,16,.45);
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:620px; /* forces a swipe-scroll on phones so all columns stay accessible */
+    }
     thead th{
       text-align:left;
       font-size:14px;
@@ -77,26 +91,50 @@
       padding:12px 14px;
       background:rgba(255,255,255,.03);
       border-bottom:1px solid var(--line);
+      white-space:nowrap;
     }
     tbody td{
       padding:12px 14px;
       border-bottom:1px solid var(--line);
       font-size:16px;
+      vertical-align:middle;
+      white-space:nowrap;
     }
     tbody tr:last-child td{border-bottom:0}
-    .playerCell{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .pname{font-weight:650}
+
+    /* Player cell layout: name can wrap within its own box */
+    .playerCell{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-width:240px; /* enough room for name */
+    }
+    .pname{
+      font-weight:650;
+      white-space:normal;   /* allow wrap */
+      line-height:1.15;
+      max-width:170px;      /* keeps it from pushing table wide */
+    }
+
+    /* Compact Flashscore icon button */
     .fsBtn{
+      width:38px;
+      height:38px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
       background:rgba(255,255,255,.06);
       border:1px solid var(--line);
       color:var(--text);
       border-radius:12px;
-      padding:8px 10px;
-      font-size:13px;
       cursor:pointer;
-      white-space:nowrap;
+      font-size:18px;
+      flex:0 0 auto;
     }
     .fsBtn:active{transform:translateY(1px)}
+    .fsBtn[title]{-webkit-tap-highlight-color:transparent}
+
     .toast{
       position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
       background:rgba(0,0,0,.78);
@@ -110,6 +148,15 @@
       transition:opacity .2s ease;
     }
     .toast.show{opacity:1}
+
+    /* Small helper: subtle hint that table can scroll (only when it scrolls) */
+    .scrollHint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      display:none;
+      user-select:none;
+    }
   </style>
 </head>
 
@@ -119,26 +166,26 @@
 
     <div class="panel">
       <div class="row">
-        <label>
+        <div>
           <div class="hint">CSV file</div>
           <input type="file" id="file" accept=".csv" />
-        </label>
+        </div>
       </div>
 
       <div class="row">
-        <label>
+        <div>
           <div class="hint">Tour</div>
           <select id="tour">
             <option value="WTA">WTA</option>
             <option value="ATP">ATP</option>
             <option value="CH">CH</option>
           </select>
-        </label>
+        </div>
 
-        <label>
+        <div>
           <div class="hint">Max odds</div>
           <input type="number" id="maxOdds" step="0.01" min="1.01" value="1.70" />
-        </label>
+        </div>
 
         <button class="btn" id="runBtn">Run Filter</button>
       </div>
@@ -159,6 +206,8 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
+
+      <div id="scrollHint" class="scrollHint">Tip: swipe the table left/right to see all columns.</div>
     </div>
   </div>
 
@@ -201,7 +250,6 @@
       showToast("Copied name");
       return true;
     }catch(e){
-      // fallback
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);
@@ -220,8 +268,6 @@
   }
 
   function flashscoreSearchUrl(playerName){
-    // Reliable: open Flashscore web search; user can star/favourite from there.
-    // (Deep-link directly into app is not consistently supported across Android builds.)
     const q = encodeURIComponent(playerName);
     return `https://www.flashscore.com/search/?q=${q}`;
   }
@@ -231,12 +277,22 @@
     $("result").style.display = "none";
     $("err").style.display = "none";
     $("err").textContent = "";
+    $("scrollHint").style.display = "none";
   }
 
   function showError(msg){
     $("err").textContent = msg;
     $("err").style.display = "block";
     $("result").style.display = "none";
+    $("scrollHint").style.display = "none";
+  }
+
+  function updateScrollHint(){
+    const wrap = $("result");
+    const hint = $("scrollHint");
+    if (wrap.style.display === "none") { hint.style.display = "none"; return; }
+    // If content overflows horizontally, show hint.
+    hint.style.display = (wrap.scrollWidth > wrap.clientWidth + 2) ? "block" : "none";
   }
 
   $("runBtn").addEventListener("click", () => {
@@ -261,8 +317,6 @@
           const rows = res.data || [];
           if (!rows.length) return showError("No rows found in CSV.");
 
-          // Expected headers (case-insensitive matching included)
-          // Player, Odds, SH % (hold), and either "OpH %" (opponent hold) or "Opponent Hold" etc.
           const out = [];
 
           for (const r0 of rows){
@@ -272,32 +326,22 @@
             const odds = num(pick(r0, ["Odds","odds","Price","price"]));
             if (!Number.isFinite(odds)) continue;
 
-            // Odds filter (new)
             if (odds > maxOdds) continue;
 
             const hold = num(pick(r0, ["SH %","SH%","Hold","Hold %","Hold%","Service Hold","Service Hold %"]));
             const opHold = num(pick(r0, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold","OppHold","OppHold %"]));
-
             if (!Number.isFinite(hold) || !Number.isFinite(opHold)) continue;
 
             const brk = 100 - opHold;
             const combined = hold + brk;
 
             if (hold >= holdMin && combined >= COMBINED_MIN){
-              out.push({
-                player,
-                odds,
-                hold,
-                brk,
-                combined
-              });
+              out.push({ player, odds, hold, brk, combined });
             }
           }
 
-          // Sort by Combined desc (then Hold desc)
           out.sort((a,b)=> (b.combined - a.combined) || (b.hold - a.hold));
 
-          // Render
           const tb = $("tbody");
           tb.innerHTML = "";
 
@@ -315,10 +359,10 @@
             const btn = document.createElement("button");
             btn.className = "fsBtn";
             btn.type = "button";
-            btn.textContent = "⚡ Flashscore";
+            btn.title = "Flashscore (copies name)";
+            btn.textContent = "⚡";
             btn.addEventListener("click", async () => {
               await copyText(r.player);
-              // open web search; if Flashscore app has verified links enabled, Android may open it
               window.open(flashscoreSearchUrl(r.player), "_blank", "noopener,noreferrer");
             });
 
@@ -347,6 +391,8 @@
           }
 
           $("result").style.display = "block";
+          updateScrollHint();
+          setTimeout(updateScrollHint, 50);
         }catch(e){
           showError("Error processing CSV. Check your column headers.\n\n" + (e?.message || e));
         }
@@ -354,6 +400,8 @@
       error: (err) => showError("Could not parse CSV.\n\n" + (err?.message || err))
     });
   });
+
+  window.addEventListener("resize", updateScrollHint);
 </script>
 </body>
 </html>
