@@ -12,61 +12,37 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
-  body{
-    font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background:#0f0f14;
-    color:#eee;
-    margin:0;
-    padding:20px;
-  }
-  h1{
-    margin:0 0 18px 0;
-    font-size:34px;
-    font-weight:800;
-  }
-  .bar{
-    display:flex;
-    gap:14px;
-    align-items:center;
-    flex-wrap:wrap;
-    margin:18px 0 18px 0;
-  }
-  label{font-size:18px}
-  select,input{
-    padding:12px;
-    border-radius:10px;
-    border:1px solid #2a2a3a;
-    background:#151522;
-    color:#eee;
-    font-size:16px;
-  }
-  button{
-    padding:12px 18px;
-    border-radius:12px;
-    background:#6a00ff;
-    color:white;
-    border:none;
-    font-size:16px;
-    font-weight:700;
-  }
-  table{
-    border-collapse:collapse;
-    width:100%;
-    margin-top:20px;
-    background:#151522;
-    border:1px solid #2a2a3a;
-    border-radius:12px;
-    overflow:hidden;
-  }
-  th, td{
-    border-bottom:1px solid #2a2a3a;
-    padding:12px 10px;
-    text-align:left;
-    font-size:16px;
-  }
-  th{font-size:18px}
-  tr:last-child td{border-bottom:none}
-  a{color:#a78bfa;text-decoration:none;font-weight:700}
+body{
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:#0f0f14;
+  color:#eee;
+  margin:0;
+  padding:20px;
+}
+
+h1{font-size:34px;margin-bottom:18px}
+
+.bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+
+select,input{
+  padding:10px;border-radius:10px;border:1px solid #2a2a3a;
+  background:#151522;color:#eee;
+}
+
+button{
+  background:#6a00ff;color:white;border:none;
+  padding:10px 16px;border-radius:10px;font-weight:700;
+}
+
+table{
+  width:100%;border-collapse:collapse;margin-top:20px;
+  background:#151522;border-radius:12px;overflow:hidden;
+}
+
+th,td{padding:12px;border-bottom:1px solid #2a2a3a}
+th{text-align:left}
+
+a{color:#a78bfa;text-decoration:none;font-weight:bold}
 </style>
 </head>
 
@@ -79,133 +55,130 @@
 </div>
 
 <div class="bar">
-  <label for="tour">Tour:</label>
+  <label>Tour:</label>
   <select id="tour">
     <option value="WTA">WTA</option>
     <option value="ATP">ATP</option>
     <option value="CH">Challenger</option>
   </select>
 
-  <button onclick="run()">Run Filter</button>
+  <button onclick="runFilter()">Run Filter</button>
 </div>
 
 <div id="result"></div>
 
 <script>
-  // Thresholds
-  const HOLD = { WTA: 66, ATP: 78, CH: 80 };
-  const COMBINED = 100;
+// ---------------- SETTINGS ----------------
+const HOLD_THRESHOLD = { WTA: 66, ATP: 78, CH: 80 };
+const COMBINED_THRESHOLD = 100;
 
-  let data = [];
+let dataset = [];
 
-  document.getElementById('file').addEventListener('change', e => {
-    const f = e.target.files[0];
-    if (!f) return;
+// ---------------- CSV LOAD ----------------
+document.getElementById('file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
 
-    Papa.parse(f, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: h => String(h || "").trim(),
-      complete: r => { data = r.data || []; }
-    });
+  Papa.parse(file,{
+    header:true,
+    skipEmptyLines:true,
+    transformHeader:h=>h.trim(),
+    complete:res=> dataset = res.data
+  });
+});
+
+// ---------------- HELPERS ----------------
+function toNumber(v){
+  if(v==null) return NaN;
+  return parseFloat(String(v).replace('%','').trim());
+}
+
+function findColumn(row, names){
+  return names.find(n => row[n] !== undefined);
+}
+
+function buildFlashscoreIntent(player){
+  return `intent://search/?q=${encodeURIComponent(player)}#Intent;package=eu.livesport.FlashScore_com;scheme=https;end`;
+}
+
+// ---------------- MAIN FILTER ----------------
+function runFilter(){
+
+  if(!dataset.length){
+    document.getElementById('result').innerHTML="";
+    return;
+  }
+
+  const tour = document.getElementById('tour').value;
+  const output = [];
+
+  const firstRow = dataset[0];
+
+  const holdCol = findColumn(firstRow,[
+    "SH %","SH%","Hold %","Hold","Service Hold %"
+  ]);
+
+  const oppHoldCol = findColumn(firstRow,[
+    "OpH %","OpH%","Opponent Hold %","Opp Hold"
+  ]);
+
+  const nameCol = findColumn(firstRow,[
+    "Player","player","Name","name"
+  ]);
+
+  dataset.forEach(row=>{
+
+    const hold = toNumber(row[holdCol]);
+    const oppHold = toNumber(row[oppHoldCol]);
+
+    if(!Number.isFinite(hold) || !Number.isFinite(oppHold)) return;
+
+    const breakPct = 100 - oppHold;
+    const combined = hold + breakPct;
+
+    if(hold >= HOLD_THRESHOLD[tour] && combined >= COMBINED_THRESHOLD){
+
+      const player = row[nameCol] || "";
+      output.push({
+        player,
+        hold: hold.toFixed(2),
+        breakPct: breakPct.toFixed(2),
+        combined: combined.toFixed(2),
+        intent: buildFlashscoreIntent(player)
+      });
+    }
   });
 
-  function num(x){
-    if (x === null || x === undefined) return NaN;
-    const s = String(x).replace('%','').trim();
-    const n = parseFloat(s);
-    return Number.isFinite(n) ? n : NaN;
-  }
+  renderTable(output);
+}
 
-  function pick(r, keys){
-    for (const k of keys){
-      if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") return r[k];
-    }
-    return undefined;
-  }
+// ---------------- TABLE RENDER ----------------
+function renderTable(rows){
 
-  function detectKeys(){
-    const keys = Object.keys(data[0] || {});
-    const has = (k) => keys.includes(k);
+  let html = `
+  <table>
+    <tr>
+      <th>Player</th>
+      <th></th>
+      <th>Hold</th>
+      <th>Break</th>
+      <th>Combined</th>
+    </tr>`;
 
-    const holdKeys = [
-      "SH %","SH%","Serve Hold %","ServeHold%","Service Hold %","Service Hold","Hold %","Hold%","Hold"
-    ];
+  rows.forEach(r=>{
+    html += `
+    <tr>
+      <td>${r.player}</td>
+      <td><a href="${r.intent}">📱</a></td>
+      <td>${r.hold}</td>
+      <td>${r.breakPct}</td>
+      <td>${r.combined}</td>
+    </tr>`;
+  });
 
-    const ophKeys = [
-      "OpH %","OpH%","Opp Hold %","OppHold %","Opponent Hold %","Opponent Hold","Opp Hold"
-    ];
-
-    const playerKeys = ["Player","player","Name","name"];
-
-    const holdKey = holdKeys.find(has) || null;
-    const ophKey  = ophKeys.find(has)  || null;
-    const playerKey = playerKeys.find(has) || null;
-
-    return { holdKey, ophKey, playerKey, holdKeys, ophKeys, playerKeys };
-  }
-
-  function run(){
-    const tour = document.getElementById('tour').value;
-    const out = [];
-
-    if (!data || data.length === 0){
-      document.getElementById('result').innerHTML = "";
-      return;
-    }
-
-    const dk = detectKeys();
-
-    data.forEach(r => {
-      const holdRaw = dk.holdKey ? r[dk.holdKey] : pick(r, dk.holdKeys);
-      const ophRaw  = dk.ophKey  ? r[dk.ophKey]  : pick(r, dk.ophKeys);
-
-      const hold = num(holdRaw);
-      const oph  = num(ophRaw);
-
-      if (!Number.isFinite(hold) || !Number.isFinite(oph)) return;
-
-      const brk = 100 - oph;
-      const comb = hold + brk;
-
-      if (hold >= HOLD[tour] && comb >= COMBINED){
-        const p = dk.playerKey ? r[dk.playerKey] : pick(r, dk.playerKeys);
-        out.push({
-          Player: p ?? "",
-          Hold: hold.toFixed(2),
-          Break: brk.toFixed(2),
-          Combined: comb.toFixed(2)
-        });
-      }
-    });
-
-    let html = `
-      <table>
-        <tr>
-          <th>Player</th>
-          <th></th>
-          <th>Hold</th>
-          <th>Break</th>
-          <th>Combined</th>
-        </tr>
-    `;
-
-    out.forEach(r => {
-      const search = encodeURIComponent('site:flashscore.com "' + r.Player + '" tennis');
-      html += `
-        <tr>
-          <td>${r.Player}</td>
-          <td><a target="_blank" href="https://www.google.com/search?q=${search}">🔎</a></td>
-          <td>${r.Hold}</td>
-          <td>${r.Break}</td>
-          <td>${r.Combined}</td>
-        </tr>
-      `;
-    });
-
-    html += `</table>`;
-    document.getElementById('result').innerHTML = html;
-  }
+  html += "</table>";
+  document.getElementById('result').innerHTML = html;
+}
 </script>
 
 </body>
