@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>PM Filter</title>
 
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,142 +13,172 @@
 
   <style>
     :root{
-      --bg:#0f0f14;
-      --card:#141625;
-      --muted:#9aa0b2;
-      --text:#eef0f7;
-      --line:rgba(255,255,255,.08);
+      --bg:#090a12;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.08);
+      --text:#f2f2f7;
+      --muted:rgba(242,242,247,.72);
+      --line:rgba(255,255,255,.10);
       --accent:#6a00ff;
-      --accent2:#8a3dff;
+      --shadow:0 18px 60px rgba(0,0,0,.55);
       --radius:18px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background: radial-gradient(900px 500px at 30% 0%, rgba(106,0,255,.18), transparent 60%),
-                  radial-gradient(900px 500px at 90% 10%, rgba(138,61,255,.14), transparent 55%),
-                  var(--bg);
+      background:radial-gradient(900px 500px at 20% -10%, rgba(106,0,255,.25), transparent 55%),
+                 radial-gradient(900px 500px at 90% 0%, rgba(106,0,255,.18), transparent 60%),
+                 var(--bg);
       color:var(--text);
+      min-height:100vh;
+      padding:18px 14px 28px;
     }
-    .wrap{max-width:860px;margin:0 auto;padding:22px 18px 40px}
-    h1{margin:8px 0 18px;font-size:44px;letter-spacing:.2px}
+    .wrap{max-width:980px;margin:0 auto}
+    h1{
+      margin:18px 0 14px;
+      font-size:56px;
+      letter-spacing:-.02em;
+      line-height:1;
+      font-weight:800;
+    }
+
     .panel{
-      background:linear-gradient(180deg, rgba(20,22,37,.85), rgba(20,22,37,.65));
+      background:var(--card);
       border:1px solid var(--line);
       border-radius:var(--radius);
-      padding:18px;
-      box-shadow:0 16px 40px rgba(0,0,0,.35);
+      box-shadow:var(--shadow);
+      padding:14px;
     }
-    .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
-    .row + .row{margin-top:14px}
-    .hint{font-size:13px;color:var(--muted)}
-    input[type="file"]{color:var(--muted)}
-    select,input[type="number"]{
-      background:rgba(255,255,255,.04);
-      border:1px solid var(--line);
+
+    .grid{
+      display:grid;
+      gap:12px;
+      grid-template-columns: 1fr;
+    }
+
+    .row{
+      display:grid;
+      gap:12px;
+      grid-template-columns: 1fr;
+    }
+
+    .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="file"], select, input[type="number"]{
+      width:100%;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
       color:var(--text);
       border-radius:14px;
       padding:12px 12px;
       font-size:16px;
       outline:none;
-      min-width:140px;
     }
+    input[type="number"]{appearance:textfield}
     .btn{
-      background:linear-gradient(135deg,var(--accent),var(--accent2));
-      border:0;
+      width:100%;
+      background:linear-gradient(180deg, rgba(106,0,255,1), rgba(106,0,255,.82));
+      border:none;
       color:white;
-      font-weight:700;
-      padding:12px 18px;
-      border-radius:14px;
-      font-size:16px;
+      font-weight:800;
+      padding:14px 14px;
+      border-radius:16px;
+      font-size:18px;
+      box-shadow:0 10px 30px rgba(106,0,255,.28);
       cursor:pointer;
-      box-shadow:0 10px 20px rgba(106,0,255,.25);
     }
     .btn:active{transform:translateY(1px)}
-    .error{color:#ff7b7b;font-size:14px;margin-top:12px;white-space:pre-wrap}
-
-    /* horizontal scroll on mobile */
-    .tableWrap{
-      margin-top:16px;
-      border-radius:16px;
-      border:1px solid var(--line);
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-      background:rgba(10,10,16,.45);
-    }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      min-width:620px;
-    }
-    thead th{
-      text-align:left;
-      font-size:14px;
-      color:#cfd3e6;
-      padding:12px 14px;
-      background:rgba(255,255,255,.03);
-      border-bottom:1px solid var(--line);
-      white-space:nowrap;
-    }
-    tbody td{
-      padding:12px 14px;
-      border-bottom:1px solid var(--line);
-      font-size:16px;
-      vertical-align:middle;
-      white-space:nowrap;
-    }
-    tbody tr:last-child td{border-bottom:0}
-
-    .playerCell{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      min-width:240px;
-    }
-    .pname{
-      font-weight:650;
-      white-space:normal;
-      line-height:1.15;
-      max-width:170px;
-    }
-
-    .fsBtn{
-      width:38px;height:38px;
-      display:inline-flex;
-      align-items:center;justify-content:center;
-      background:rgba(255,255,255,.06);
-      border:1px solid var(--line);
-      color:var(--text);
-      border-radius:12px;
-      cursor:pointer;
-      font-size:18px;
-      flex:0 0 auto;
-      -webkit-tap-highlight-color:transparent;
-    }
-    .fsBtn:active{transform:translateY(1px)}
-
-    .toast{
-      position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
-      background:rgba(0,0,0,.78);
-      border:1px solid rgba(255,255,255,.12);
-      color:#fff;
-      padding:10px 12px;
-      border-radius:999px;
-      font-size:13px;
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .2s ease;
-    }
-    .toast.show{opacity:1}
-
-    .scrollHint{
+    .hint{
       margin-top:10px;
       color:var(--muted);
       font-size:12px;
-      display:none;
+    }
+
+    .table-wrap{
+      margin-top:14px;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      overflow:hidden;
+    }
+
+    .scroller{
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    table{
+      border-collapse:separate;
+      border-spacing:0;
+      width:max-content;
+      min-width:100%;
+      font-variant-numeric: tabular-nums;
+    }
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:rgba(16,16,26,.92);
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      padding:12px 12px;
+      font-size:14px;
+      color:rgba(242,242,247,.85);
+      white-space:nowrap;
+    }
+    tbody td{
+      padding:12px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      white-space:nowrap;
+      vertical-align:middle;
+    }
+    tbody tr:hover{background:rgba(255,255,255,.03)}
+    .player{
+      font-weight:800;
+      font-size:18px;
+      letter-spacing:-.01em;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.05);
+      color:rgba(242,242,247,.9);
+      font-weight:700;
+      cursor:pointer;
       user-select:none;
+    }
+    .pill:active{transform:translateY(1px)}
+    .bolt{font-size:16px;line-height:1}
+    .muted{color:var(--muted)}
+    .right{text-align:right}
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:rgba(20,20,28,.92);
+      border:1px solid rgba(255,255,255,.12);
+      color:rgba(242,242,247,.95);
+      padding:10px 12px;
+      border-radius:12px;
+      box-shadow:0 16px 50px rgba(0,0,0,.6);
+      font-weight:700;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .18s ease, transform .18s ease;
+    }
+    .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px);}
+
+    @media (min-width: 760px){
+      .row{grid-template-columns: 1.1fr .6fr .6fr .6fr;}
+      .btn{width:auto; padding:14px 22px}
     }
   </style>
 </head>
@@ -158,272 +188,297 @@
     <h1>PM Filter</h1>
 
     <div class="panel">
-      <div class="row">
+      <div class="grid">
         <div>
-          <div class="hint">CSV file</div>
-          <input type="file" id="file" accept=".csv" />
+          <div class="label">CSV file</div>
+          <input id="file" type="file" accept=".csv,text/csv" />
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="label">Tour</div>
+            <select id="tour">
+              <option value="WTA">WTA</option>
+              <option value="ATP">ATP</option>
+              <option value="CH">CH</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="label">Max odds</div>
+            <input id="maxOdds" type="number" step="0.01" value="1.70" inputmode="decimal" />
+          </div>
+
+          <div>
+            <div class="label">Combined ≥</div>
+            <input id="minCombined" type="number" step="0.1" value="100" inputmode="decimal" />
+          </div>
+
+          <div style="display:flex;align-items:end;">
+            <button class="btn" id="run">Run Filter</button>
+          </div>
+        </div>
+
+        <div class="hint">
+          ⚡ copies player name. (Flashscore links are intentionally not opened to avoid store/browser hijacks on Android PWAs.)
         </div>
       </div>
 
-      <div class="row">
-        <div>
-          <div class="hint">Tour</div>
-          <select id="tour">
-            <option value="WTA">WTA</option>
-            <option value="ATP">ATP</option>
-            <option value="CH">CH</option>
-          </select>
+      <div id="out" class="table-wrap" style="display:none;">
+        <div class="scroller">
+          <table id="table">
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
         </div>
-
-        <div>
-          <div class="hint">Max odds</div>
-          <input type="number" id="maxOdds" step="0.01" min="1.01" value="1.70" />
-        </div>
-
-        <button class="btn" id="runBtn">Run Filter</button>
       </div>
-
-      <div id="err" class="error" style="display:none;"></div>
-
-      <div id="result" class="tableWrap" style="display:none;">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:44%;">Player</th>
-              <th>Odds</th>
-              <th>Hold</th>
-              <th>Break</th>
-              <th>Combined</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-
-      <div id="scrollHint" class="scrollHint">Tip: swipe the table left/right to see all columns.</div>
     </div>
   </div>
 
-  <div id="toast" class="toast">Copied</div>
+  <div class="toast" id="toast"></div>
 
 <script>
-  // Thresholds
-  const HOLD_THRESH = { WTA: 66, ATP: 78, CH: 80 };
-  const COMBINED_MIN = 100;
+  // --- thresholds ---
+  const HOLD_THRESH = { WTA: 66, ATP: 78, CH: 80 }; // as requested
+  // Break = 100 - Opponent Hold
+  // Combined = Hold + Break
+  // Additional filters: odds <= maxOdds, combined >= minCombined
 
-  const $ = (id) => document.getElementById(id);
+  const fileEl = document.getElementById("file");
+  const tourEl = document.getElementById("tour");
+  const maxOddsEl = document.getElementById("maxOdds");
+  const minCombinedEl = document.getElementById("minCombined");
+  const runBtn = document.getElementById("run");
 
+  const outWrap = document.getElementById("out");
+  const thead = document.getElementById("thead");
+  const tbody = document.getElementById("tbody");
+  const toast = document.getElementById("toast");
+
+  let toastTimer = null;
   function showToast(msg){
-    const t = $("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"), 900);
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>toast.classList.remove("show"), 1100);
   }
 
   function num(x){
     if (x === null || x === undefined) return NaN;
-    const s = String(x).trim().replace("%","");
+    const s = String(x)
+      .trim()
+      .replaceAll("%","")
+      .replaceAll("−","-")
+      .replaceAll(",","."); // allow comma decimals
     const v = parseFloat(s);
     return Number.isFinite(v) ? v : NaN;
   }
 
-  function pick(obj, keys){
-    for (const k of keys){
-      if (k in obj) return obj[k];
-      const found = Object.keys(obj).find(h => h.trim().toLowerCase() === k.toLowerCase());
-      if (found) return obj[found];
+  // Try multiple header names (your CSVs can vary)
+  function pick(row, names){
+    for(const n of names){
+      if (row[n] !== undefined) return row[n];
     }
     return undefined;
+  }
+
+  // Normalise a row to get Player / Odds / Hold / OppHold
+  function extractCore(row){
+    const player = pick(row, ["Player","player","Name","name"]);
+    const oddsRaw = pick(row, ["Odds","odds","Price","price"]);
+    const shRaw   = pick(row, ["SH %","SH%","Hold","Hold%","Hold %","Service Hold%","Service Hold %"]);
+    const ophRaw  = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold%","Opponent Hold %","Opp Hold%","Opp Hold %","OppHold%"]);
+
+    return {
+      player: (player ?? "").toString().trim(),
+      odds: num(oddsRaw),
+      hold: num(shRaw),
+      oppHold: num(ophRaw),
+      raw: row
+    };
   }
 
   async function copyText(text){
     try{
       await navigator.clipboard.writeText(text);
-      showToast("Copied name");
-      return true;
+      showToast("Copied: " + text);
     }catch(e){
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);
       ta.select();
-      try{
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        showToast("Copied name");
-        return true;
-      }catch(err){
-        document.body.removeChild(ta);
-        showToast("Copy failed");
-        return false;
-      }
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast("Copied: " + text);
     }
   }
 
-  function flashscoreSearchUrl(playerName){
-    const q = encodeURIComponent(playerName);
-    return `https://www.flashscore.com/search/?q=${q}`;
+  function buildHeader(allExtraCols){
+    // Minimal fixed columns + your original extras (so you can "see all columns")
+    const cols = [
+      { key:"player", label:"Player" },
+      { key:"copy", label:"" },
+      { key:"odds", label:"Odds", right:true },
+      { key:"hold", label:"Hold", right:true },
+      { key:"break", label:"Break", right:true },
+      { key:"combined", label:"Combined", right:true },
+      ...allExtraCols.map(c => ({ key:c, label:c }))
+    ];
+
+    thead.innerHTML = "";
+    const tr = document.createElement("tr");
+    cols.forEach(c=>{
+      const th = document.createElement("th");
+      th.textContent = c.label;
+      if (c.right) th.className = "right";
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    return cols;
   }
 
-  // Key fix: try to open the Flashscore APP via Android Intent,
-  // otherwise fall back to normal browser. This avoids Flashscore blocking WebViews.
-  function openFlashscore(playerName){
-    const url = flashscoreSearchUrl(playerName);
+  function render(rows){
+    // Collect extra columns (everything except the core columns we already show)
+    const seen = new Set();
+    const coreNames = new Set([
+      "Player","player","Name","name",
+      "Odds","odds","Price","price",
+      "SH %","SH%","Hold","Hold%","Hold %","Service Hold%","Service Hold %",
+      "OpH %","OpH%","Opponent Hold","Opponent Hold%","Opponent Hold %","Opp Hold%","Opp Hold %","OppHold%"
+    ]);
 
-    // Flashscore Android package (from your Play Store link)
-    const pkg = "eu.livesport.FlashScore_com";
+    rows.forEach(r=>{
+      Object.keys(r.raw).forEach(k=>{
+        if (!coreNames.has(k)) seen.add(k);
+      });
+    });
 
-    // Intent with browser fallback (NOT Play Store)
-    const intentUrl =
-      `intent://www.flashscore.com/search/?q=${encodeURIComponent(playerName)}` +
-      `#Intent;scheme=https;package=${pkg};` +
-      `S.browser_fallback_url=${encodeURIComponent(url)};end`;
+    const extraCols = Array.from(seen);
+    // keep it stable: common ones first if present
+    const preferred = ["SPW %","SPW%","SPW","TPW","RPW","A%","DF%","1stIn","1st%","2nd%"];
+    extraCols.sort((a,b)=>{
+      const ia = preferred.indexOf(a);
+      const ib = preferred.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
 
-    // Try intent first (should open app if link handling is enabled)
-    try{
-      window.location.href = intentUrl;
-    }catch(e){
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
+    const cols = buildHeader(extraCols);
 
-    // If the intent doesn’t resolve, the fallback should open.
-    // (We still keep a secondary fallback just in case.)
-    setTimeout(() => {
-      // If user is still on our page, open browser as a backup
-      // (Some devices ignore the fallback_url parameter)
-      try{
-        window.open(url, "_blank", "noopener,noreferrer");
-      }catch(_){}
-    }, 600);
-  }
+    tbody.innerHTML = "";
+    rows.forEach(r=>{
+      const tr = document.createElement("tr");
 
-  function clearOutput(){
-    $("tbody").innerHTML = "";
-    $("result").style.display = "none";
-    $("err").style.display = "none";
-    $("err").textContent = "";
-    $("scrollHint").style.display = "none";
-  }
+      cols.forEach(c=>{
+        const td = document.createElement("td");
 
-  function showError(msg){
-    $("err").textContent = msg;
-    $("err").style.display = "block";
-    $("result").style.display = "none";
-    $("scrollHint").style.display = "none";
-  }
-
-  function updateScrollHint(){
-    const wrap = $("result");
-    const hint = $("scrollHint");
-    if (wrap.style.display === "none") { hint.style.display = "none"; return; }
-    hint.style.display = (wrap.scrollWidth > wrap.clientWidth + 2) ? "block" : "none";
-  }
-
-  $("runBtn").addEventListener("click", () => {
-    clearOutput();
-
-    const f = $("file").files?.[0];
-    if (!f) return showError("Choose a CSV file first.");
-
-    const tour = $("tour").value;
-    const holdMin = HOLD_THRESH[tour];
-    const maxOdds = num($("maxOdds").value);
-
-    if (!Number.isFinite(maxOdds) || maxOdds <= 1) {
-      return showError("Max odds must be a number > 1.00 (e.g. 1.70).");
-    }
-
-    Papa.parse(f, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (res) => {
-        try{
-          const rows = res.data || [];
-          if (!rows.length) return showError("No rows found in CSV.");
-
-          const out = [];
-
-          for (const r0 of rows){
-            const player = String(pick(r0, ["Player","player","Name","name"]) ?? "").trim();
-            if (!player) continue;
-
-            const odds = num(pick(r0, ["Odds","odds","Price","price"]));
-            if (!Number.isFinite(odds)) continue;
-            if (odds > maxOdds) continue;
-
-            const hold = num(pick(r0, ["SH %","SH%","Hold","Hold %","Hold%","Service Hold","Service Hold %"]));
-            const opHold = num(pick(r0, ["OpH %","OpH%","Opponent hold","Opponent Hold","Opponent Hold %","Opp Hold","OppHold","OppHold %"]));
-            if (!Number.isFinite(hold) || !Number.isFinite(opHold)) continue;
-
-            const brk = 100 - opHold;
-            const combined = hold + brk;
-
-            if (hold >= holdMin && combined >= COMBINED_MIN){
-              out.push({ player, odds, hold, brk, combined });
-            }
-          }
-
-          out.sort((a,b)=> (b.combined - a.combined) || (b.hold - a.hold));
-
-          const tb = $("tbody");
-          tb.innerHTML = "";
-
-          for (const r of out){
-            const tr = document.createElement("tr");
-
-            const tdP = document.createElement("td");
-            const wrap = document.createElement("div");
-            wrap.className = "playerCell";
-
-            const name = document.createElement("div");
-            name.className = "pname";
-            name.textContent = r.player;
-
-            const btn = document.createElement("button");
-            btn.className = "fsBtn";
-            btn.type = "button";
-            btn.title = "Open Flashscore (copies name)";
-            btn.textContent = "⚡";
-            btn.addEventListener("click", async () => {
-              await copyText(r.player);
-              openFlashscore(r.player);
-            });
-
-            wrap.appendChild(name);
-            wrap.appendChild(btn);
-            tdP.appendChild(wrap);
-
-            const tdOdds = document.createElement("td");
-            tdOdds.textContent = r.odds.toFixed(2);
-
-            const tdH = document.createElement("td");
-            tdH.textContent = r.hold.toFixed(2);
-
-            const tdB = document.createElement("td");
-            tdB.textContent = r.brk.toFixed(2);
-
-            const tdC = document.createElement("td");
-            tdC.textContent = r.combined.toFixed(2);
-
-            tr.appendChild(tdP);
-            tr.appendChild(tdOdds);
-            tr.appendChild(tdH);
-            tr.appendChild(tdB);
-            tr.appendChild(tdC);
-            tb.appendChild(tr);
-          }
-
-          $("result").style.display = "block";
-          updateScrollHint();
-          setTimeout(updateScrollHint, 50);
-        }catch(e){
-          showError("Error processing CSV. Check your column headers.\n\n" + (e?.message || e));
+        if (c.key === "player"){
+          const div = document.createElement("div");
+          div.className = "player";
+          div.textContent = r.player;
+          td.appendChild(div);
+        } else if (c.key === "copy"){
+          const btn = document.createElement("span");
+          btn.className = "pill";
+          btn.title = "Copy player name";
+          btn.innerHTML = `<span class="bolt">⚡</span><span class="muted">Copy</span>`;
+          btn.addEventListener("click", ()=> copyText(r.player));
+          td.appendChild(btn);
+        } else if (c.key === "odds"){
+          td.className = "right";
+          td.textContent = Number.isFinite(r.odds) ? r.odds.toFixed(2) : "";
+        } else if (c.key === "hold"){
+          td.className = "right";
+          td.textContent = Number.isFinite(r.hold) ? r.hold.toFixed(2) : "";
+        } else if (c.key === "break"){
+          td.className = "right";
+          td.textContent = Number.isFinite(r.brk) ? r.brk.toFixed(2) : "";
+        } else if (c.key === "combined"){
+          td.className = "right";
+          td.textContent = Number.isFinite(r.combined) ? r.combined.toFixed(2) : "";
+        } else {
+          // extra columns: show raw value as-is
+          const v = r.raw[c.key];
+          td.textContent = (v === undefined || v === null) ? "" : String(v);
         }
+
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    outWrap.style.display = "block";
+  }
+
+  function filterData(data){
+    const tour = tourEl.value;
+    const holdMin = HOLD_THRESH[tour];
+    const maxOdds = num(maxOddsEl.value);
+    const minCombined = num(minCombinedEl.value);
+
+    const rows = [];
+    for(const row of data){
+      const r = extractCore(row);
+      if (!r.player) continue;
+
+      // odds filter (if odds missing, exclude)
+      if (!Number.isFinite(r.odds)) continue;
+      if (Number.isFinite(maxOdds) && r.odds > maxOdds) continue;
+
+      // hold filter
+      if (!Number.isFinite(r.hold)) continue;
+      if (r.hold < holdMin) continue;
+
+      // break/combined require opponent hold
+      if (!Number.isFinite(r.oppHold)) continue;
+      const brk = 100 - r.oppHold;
+      const combined = r.hold + brk;
+
+      if (Number.isFinite(minCombined) && combined < minCombined) continue;
+
+      rows.push({
+        ...r,
+        brk,
+        combined
+      });
+    }
+
+    // Sort: best combined first
+    rows.sort((a,b)=> (b.combined - a.combined) || (b.hold - a.hold) || (a.player.localeCompare(b.player)));
+    return rows;
+  }
+
+  runBtn.addEventListener("click", ()=>{
+    const file = fileEl.files && fileEl.files[0];
+    if (!file){
+      showToast("Choose a CSV first");
+      return;
+    }
+
+    Papa.parse(file, {
+      header:true,
+      skipEmptyLines:true,
+      complete:(res)=>{
+        const data = Array.isArray(res.data) ? res.data : [];
+        const filtered = filterData(data);
+        render(filtered);
       },
-      error: (err) => showError("Could not parse CSV.\n\n" + (err?.message || err))
+      error:()=>{
+        showToast("Couldn’t read CSV");
+      }
     });
   });
 
-  window.addEventListener("resize", updateScrollHint);
+  // Service worker (optional but keeps it installable + offline shell)
+  if ("serviceWorker" in navigator){
+    window.addEventListener("load", ()=>{
+      navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    });
+  }
 </script>
 </body>
 </html>
+```0
