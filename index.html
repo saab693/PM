@@ -66,6 +66,7 @@
   }
   th{font-size:18px}
   tr:last-child td{border-bottom:none}
+  a{color:#a78bfa;text-decoration:none;font-weight:700}
 </style>
 </head>
 
@@ -182,6 +183,7 @@
       <table>
         <tr>
           <th>Player</th>
+          <th></th>
           <th>Hold</th>
           <th>Break</th>
           <th>Combined</th>
@@ -192,6 +194,7 @@
       html += `
         <tr>
           <td>${r.Player}</td>
+          <td><a target="_blank" href="https://www.flashscore.com/search/?q=${encodeURIComponent(r.Player)}">🔎</a></td>
           <td>${r.Hold}</td>
           <td>${r.Break}</td>
           <td>${r.Combined}</td>
