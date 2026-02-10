@@ -37,6 +37,7 @@ table{
 th,td{padding:12px 10px;border-bottom:1px solid #2a2a3a;text-align:left;}
 th{font-size:18px}
 tr:last-child td{border-bottom:none}
+
 .pill{
   display:inline-flex;align-items:center;justify-content:center;
   width:40px;height:40px;border-radius:12px;
@@ -77,116 +78,130 @@ tr:last-child td{border-bottom:none}
 <div id="toast" class="toast">Copied</div>
 
 <script>
-const HOLD_THRESHOLD = { WTA: 66, ATP: 78, CH: 80 };
-const COMBINED_THRESHOLD = 100;
+  // Thresholds
+  const HOLD_THRESHOLD = { WTA: 66, ATP: 78, CH: 80 };
+  const COMBINED_THRESHOLD = 100;
 
-// Flashscore Android package
-const FLASHSCORE_PACKAGE = "eu.livesport.FlashScore_com";
+  // Your confirmed Flashscore package
+  const FLASHSCORE_PKG = "eu.livesport.FlashScore_com";
 
-let dataset = [];
+  let dataset = [];
 
-document.getElementById("file").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  document.getElementById("file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    transformHeader: (h) => String(h || "").trim(),
-    complete: (res) => dataset = res.data || []
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => String(h || "").trim(),
+      complete: (res) => dataset = res.data || []
+    });
   });
-});
 
-function toNumber(v){
-  if (v === null || v === undefined) return NaN;
-  const n = parseFloat(String(v).replace("%","").trim());
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function findColumn(row, candidates){
-  for (const c of candidates){
-    if (row[c] !== undefined) return c;
-  }
-  return null;
-}
-
-function toast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(()=>t.classList.remove("show"), 900);
-}
-
-// This tries to open the Flashscore app WITHOUT allowing a Play Store fallback.
-function openFlashscoreAppNoStoreFallback(){
-  // A "generic open" intent. If Flashscore is installed, Android will open it.
-  // If not installed, it will simply do nothing (no store redirect).
-  const intent = `intent://open#Intent;scheme=fls;package=${FLASHSCORE_PACKAGE};end`;
-
-  // Use location.assign so it stays in same tab and doesn't trigger store logic in some contexts
-  window.location.assign(intent);
-}
-
-async function openFlashscore(player){
-  // Copy first
-  try{
-    await navigator.clipboard.writeText(player);
-    toast("Copied: " + player);
-  }catch(e){
-    toast("Copied");
+  function toNumber(v){
+    if (v === null || v === undefined) return NaN;
+    const n = parseFloat(String(v).replace("%","").trim());
+    return Number.isFinite(n) ? n : NaN;
   }
 
-  // Then open the app
-  setTimeout(openFlashscoreAppNoStoreFallback, 220);
-}
-
-function runFilter(){
-  if (!dataset.length){
-    document.getElementById("result").innerHTML = "";
-    return;
-  }
-
-  const tour = document.getElementById("tour").value;
-  const first = dataset[0] || {};
-
-  const holdCol = findColumn(first, ["SH %","SH%","Hold %","Hold"]);
-  const oppHoldCol = findColumn(first, ["OpH %","OpH%","Opponent Hold %"]);
-  const nameCol = findColumn(first, ["Player","player","Name"]);
-
-  let html = `<table>
-    <tr>
-      <th>Player</th><th></th><th>Hold</th><th>Break</th><th>Combined</th>
-    </tr>`;
-
-  dataset.forEach(r => {
-    const hold = toNumber(r[holdCol]);
-    const oppHold = toNumber(r[oppHoldCol]);
-    if (!Number.isFinite(hold) || !Number.isFinite(oppHold)) return;
-
-    const brk = 100 - oppHold;
-    const comb = hold + brk;
-
-    if (hold >= HOLD_THRESHOLD[tour] && comb >= COMBINED_THRESHOLD){
-      const player = String(r[nameCol] || "").trim();
-      if (!player) return;
-
-      html += `
-      <tr>
-        <td>${player}</td>
-        <td>
-          <a class="pill" href="javascript:void(0)" onclick='openFlashscore(${JSON.stringify(player)})'>⚡</a>
-        </td>
-        <td>${hold.toFixed(2)}</td>
-        <td>${brk.toFixed(2)}</td>
-        <td>${comb.toFixed(2)}</td>
-      </tr>`;
+  function findColumn(row, candidates){
+    for (const c of candidates){
+      if (row[c] !== undefined) return c;
     }
-  });
+    return null;
+  }
 
-  html += `</table>`;
-  document.getElementById("result").innerHTML = html;
-}
+  function toast(msg){
+    const t=document.getElementById("toast");
+    t.textContent=msg;
+    t.classList.add("show");
+    clearTimeout(toast._timer);
+    toast._timer=setTimeout(()=>t.classList.remove("show"), 900);
+  }
+
+  async function copyToClipboard(text){
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(e){
+      // fallback
+      try{
+        const ta=document.createElement("textarea");
+        ta.value=text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        return true;
+      }catch(_){
+        return false;
+      }
+    }
+  }
+
+  // KEY FIX: launch Flashscore via its launcher entry (like tapping the icon)
+  function openFlashscoreLauncher(){
+    const intent =
+      `intent://#Intent;action=android.intent.action.MAIN;` +
+      `category=android.intent.category.LAUNCHER;` +
+      `package=${FLASHSCORE_PKG};end`;
+
+    window.location.assign(intent);
+  }
+
+  async function lightning(player){
+    const ok = await copyToClipboard(player);
+    toast(ok ? ("Copied: " + player) : "Copy failed");
+
+    // give clipboard a moment to settle before app switch
+    setTimeout(openFlashscoreLauncher, 250);
+  }
+
+  function runFilter(){
+    if (!dataset.length){
+      document.getElementById("result").innerHTML = "";
+      return;
+    }
+
+    const tour=document.getElementById("tour").value;
+    const first=dataset[0]||{};
+
+    const holdCol=findColumn(first,["SH %","SH%","Hold %","Hold","Service Hold %"]);
+    const oppHoldCol=findColumn(first,["OpH %","OpH%","Opponent Hold %","Opp Hold"]);
+    const nameCol=findColumn(first,["Player","player","Name","name"]);
+
+    let html = `<table>
+      <tr>
+        <th>Player</th><th></th><th>Hold</th><th>Break</th><th>Combined</th>
+      </tr>`;
+
+    dataset.forEach(r=>{
+      const hold = toNumber(holdCol ? r[holdCol] : null);
+      const oppHold = toNumber(oppHoldCol ? r[oppHoldCol] : null);
+      if(!Number.isFinite(hold) || !Number.isFinite(oppHold)) return;
+
+      const brk = 100 - oppHold;
+      const comb = hold + brk;
+
+      if(hold >= HOLD_THRESHOLD[tour] && comb >= COMBINED_THRESHOLD){
+        const player = String(nameCol ? (r[nameCol] || "") : "").trim();
+        if(!player) return;
+
+        html += `
+          <tr>
+            <td>${player}</td>
+            <td><a class="pill" href="javascript:void(0)" onclick='lightning(${JSON.stringify(player)})'>⚡</a></td>
+            <td>${hold.toFixed(2)}</td>
+            <td>${brk.toFixed(2)}</td>
+            <td>${comb.toFixed(2)}</td>
+          </tr>`;
+      }
+    });
+
+    html += `</table>`;
+    document.getElementById("result").innerHTML = html;
+  }
 </script>
 
 </body>
