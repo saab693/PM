@@ -91,13 +91,12 @@
 <div id="result"></div>
 
 <script>
-  // Thresholds
-  const HOLD = { WTA: 67, ATP: 80, CH: 80 };
+  // NEW THRESHOLDS
+  const HOLD = { WTA: 66, ATP: 78, CH: 78 };
   const COMBINED = 100;
 
   let data = [];
 
-  // Parse CSV on upload
   document.getElementById('file').addEventListener('change', e => {
     const f = e.target.files[0];
     if (!f) return;
@@ -105,12 +104,11 @@
     Papa.parse(f, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: h => String(h || "").trim(), // removes hidden spaces in headers
+      transformHeader: h => String(h || "").trim(),
       complete: r => { data = r.data || []; }
     });
   });
 
-  // Convert values like "76.2" or "76.2%" to number
   function num(x){
     if (x === null || x === undefined) return NaN;
     const s = String(x).replace('%','').trim();
@@ -118,7 +116,6 @@
     return Number.isFinite(n) ? n : NaN;
   }
 
-  // Pick first matching key that exists in the row
   function pick(r, keys){
     for (const k of keys){
       if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") return r[k];
@@ -126,25 +123,20 @@
     return undefined;
   }
 
-  // Detect actual header names present in this file (once)
   function detectKeys(){
     const keys = Object.keys(data[0] || {});
     const has = (k) => keys.includes(k);
 
-    // Candidate lists (most common exports)
     const holdKeys = [
       "SH %","SH%","Serve Hold %","ServeHold%","Service Hold %","Service Hold","Hold %","Hold%","Hold"
     ];
 
     const ophKeys = [
-      "OpH %","OpH%","Opp Hold %","OppHold %","Opp Hold%","Opponent Hold %","Opponent Hold","Opp Hold"
+      "OpH %","OpH%","Opp Hold %","OppHold %","Opponent Hold %","Opponent Hold","Opp Hold"
     ];
 
-    const playerKeys = [
-      "Player","player","Name","name"
-    ];
+    const playerKeys = ["Player","player","Name","name"];
 
-    // Choose the first candidate that exists in the file, else fall back to using pick() row-by-row
     const holdKey = holdKeys.find(has) || null;
     const ophKey  = ophKeys.find(has)  || null;
     const playerKey = playerKeys.find(has) || null;
