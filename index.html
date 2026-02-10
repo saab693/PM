@@ -191,10 +191,11 @@
     `;
 
     out.forEach(r => {
+      const search = encodeURIComponent('site:flashscore.com "' + r.Player + '" tennis');
       html += `
         <tr>
           <td>${r.Player}</td>
-          <td><a target="_blank" href="https://www.flashscore.com/search/?query=${encodeURIComponent(r.Player)}">🔎</a></td>
+          <td><a target="_blank" href="https://www.google.com/search?q=${search}">🔎</a></td>
           <td>${r.Hold}</td>
           <td>${r.Break}</td>
           <td>${r.Combined}</td>
