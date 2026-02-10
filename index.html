@@ -1,198 +1,359 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PM Filter</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PM Filter</title>
 
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#6a00ff">
-<link rel="icon" href="PM_icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#6a00ff">
+  <link rel="icon" href="PM_icon.png">
 
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-<style>
-body{
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  background:#0f0f14;
-  color:#eee;
-  margin:0;
-  padding:20px;
-}
-h1{font-size:34px;margin:0 0 18px 0;font-weight:800;}
-.bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:0 0 18px 0;}
-label{font-size:18px}
-select,input{
-  padding:10px 12px;border-radius:10px;border:1px solid #2a2a3a;
-  background:#151522;color:#eee;font-size:16px;
-}
-button{
-  background:#6a00ff;color:white;border:none;
-  padding:10px 16px;border-radius:10px;font-weight:800;font-size:16px;
-}
-table{
-  width:100%;border-collapse:collapse;margin-top:20px;
-  background:#151522;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden;
-}
-th,td{padding:12px 10px;border-bottom:1px solid #2a2a3a;text-align:left;}
-th{font-size:18px}
-tr:last-child td{border-bottom:none}
-
-.pill{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:40px;height:40px;border-radius:12px;
-  background:#101020;border:1px solid #2a2a3a;
-  color:#a78bfa;font-weight:900;text-decoration:none;
-  font-size:20px;
-}
-.pill:active{transform:scale(0.97)}
-.toast{
-  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
-  background:#151522;border:1px solid #2a2a3a;padding:10px 14px;border-radius:12px;
-  color:#eee;font-weight:700;opacity:0;pointer-events:none;transition:opacity 180ms ease;
-}
-.toast.show{opacity:1}
-</style>
+  <style>
+    :root{
+      --bg:#0f0f14;
+      --card:#141625;
+      --muted:#9aa0b2;
+      --text:#eef0f7;
+      --line:rgba(255,255,255,.08);
+      --accent:#6a00ff;
+      --accent2:#8a3dff;
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: radial-gradient(900px 500px at 30% 0%, rgba(106,0,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 90% 10%, rgba(138,61,255,.14), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:860px;margin:0 auto;padding:22px 18px 40px}
+    h1{margin:8px 0 18px;font-size:44px;letter-spacing:.2px}
+    .panel{
+      background:linear-gradient(180deg, rgba(20,22,37,.85), rgba(20,22,37,.65));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:18px;
+      box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+    .row + .row{margin-top:14px}
+    label{font-size:14px;color:var(--muted)}
+    input[type="file"]{color:var(--muted)}
+    select,input[type="number"]{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:14px;
+      padding:12px 12px;
+      font-size:16px;
+      outline:none;
+      min-width:140px;
+    }
+    .btn{
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border:0;
+      color:white;
+      font-weight:700;
+      padding:12px 18px;
+      border-radius:14px;
+      font-size:16px;
+      cursor:pointer;
+      box-shadow:0 10px 20px rgba(106,0,255,.25);
+    }
+    .btn:active{transform:translateY(1px)}
+    .hint{font-size:13px;color:var(--muted)}
+    .error{color:#ff7b7b;font-size:14px;margin-top:12px;white-space:pre-wrap}
+    .tableWrap{margin-top:16px;overflow:hidden;border-radius:16px;border:1px solid var(--line)}
+    table{width:100%;border-collapse:collapse;background:rgba(10,10,16,.45)}
+    thead th{
+      text-align:left;
+      font-size:14px;
+      color:#cfd3e6;
+      padding:12px 14px;
+      background:rgba(255,255,255,.03);
+      border-bottom:1px solid var(--line);
+    }
+    tbody td{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      font-size:16px;
+    }
+    tbody tr:last-child td{border-bottom:0}
+    .playerCell{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .pname{font-weight:650}
+    .fsBtn{
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:12px;
+      padding:8px 10px;
+      font-size:13px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .fsBtn:active{transform:translateY(1px)}
+    .toast{
+      position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+      background:rgba(0,0,0,.78);
+      border:1px solid rgba(255,255,255,.12);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:13px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease;
+    }
+    .toast.show{opacity:1}
+  </style>
 </head>
 
 <body>
+  <div class="wrap">
+    <h1>PM Filter</h1>
 
-<h1>PM Filter</h1>
+    <div class="panel">
+      <div class="row">
+        <label>
+          <div class="hint">CSV file</div>
+          <input type="file" id="file" accept=".csv" />
+        </label>
+      </div>
 
-<div class="bar">
-  <input type="file" id="file" accept=".csv">
-</div>
+      <div class="row">
+        <label>
+          <div class="hint">Tour</div>
+          <select id="tour">
+            <option value="WTA">WTA</option>
+            <option value="ATP">ATP</option>
+            <option value="CH">CH</option>
+          </select>
+        </label>
 
-<div class="bar">
-  <label for="tour">Tour:</label>
-  <select id="tour">
-    <option value="WTA">WTA</option>
-    <option value="ATP">ATP</option>
-    <option value="CH">Challenger</option>
-  </select>
+        <label>
+          <div class="hint">Max odds</div>
+          <input type="number" id="maxOdds" step="0.01" min="1.01" value="1.70" />
+        </label>
 
-  <button onclick="runFilter()">Run Filter</button>
-</div>
+        <button class="btn" id="runBtn">Run Filter</button>
+      </div>
 
-<div id="result"></div>
-<div id="toast" class="toast">Copied</div>
+      <div id="err" class="error" style="display:none;"></div>
+
+      <div id="result" class="tableWrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:44%;">Player</th>
+              <th>Odds</th>
+              <th>Hold</th>
+              <th>Break</th>
+              <th>Combined</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Copied</div>
 
 <script>
-const HOLD_THRESHOLD = { WTA: 66, ATP: 78, CH: 80 };
-const COMBINED_THRESHOLD = 100;
+  // Thresholds
+  const HOLD_THRESH = { WTA: 66, ATP: 78, CH: 80 };
+  const COMBINED_MIN = 100;
 
-let dataset = [];
+  // Helpers
+  const $ = (id) => document.getElementById(id);
 
-document.getElementById("file").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    transformHeader: (h) => String(h || "").trim(),
-    complete: (res) => dataset = res.data || []
-  });
-});
-
-function toNumber(v){
-  if (v === null || v === undefined) return NaN;
-  const n = parseFloat(String(v).replace("%","").trim());
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function findColumn(row, candidates){
-  for (const c of candidates){
-    if (row[c] !== undefined) return c;
+  function showToast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 900);
   }
-  return null;
-}
 
-function toast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(()=>t.classList.remove("show"), 900);
-}
+  function num(x){
+    if (x === null || x === undefined) return NaN;
+    const s = String(x).trim().replace("%","");
+    const v = parseFloat(s);
+    return Number.isFinite(v) ? v : NaN;
+  }
 
-async function copyToClipboard(text){
-  try{
-    await navigator.clipboard.writeText(text);
-    return true;
-  }catch(e){
-    // fallback
+  function pick(obj, keys){
+    for (const k of keys){
+      if (k in obj) return obj[k];
+      const found = Object.keys(obj).find(h => h.trim().toLowerCase() === k.toLowerCase());
+      if (found) return obj[found];
+    }
+    return undefined;
+  }
+
+  async function copyText(text){
     try{
-      const ta=document.createElement("textarea");
-      ta.value=text;
+      await navigator.clipboard.writeText(text);
+      showToast("Copied name");
+      return true;
+    }catch(e){
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
       document.body.appendChild(ta);
       ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      return true;
-    }catch(_){
-      return false;
+      try{
+        document.execCommand("copy");
+        showToast("Copied name");
+        document.body.removeChild(ta);
+        return true;
+      }catch(err){
+        document.body.removeChild(ta);
+        showToast("Copy failed");
+        return false;
+      }
     }
   }
-}
 
-// ⚡: copy name, then open flashscore.com.
-// If your Pixel is set to “Open supported links” for Flashscore, this should open the APP.
-// If not, it opens the website (still fine) — but never the Play Store.
-async function lightning(player){
-  const ok = await copyToClipboard(player);
-  toast(ok ? ("Copied: " + player) : "Copy failed");
-
-  setTimeout(() => {
-    window.location.href = "https://www.flashscore.com/";
-  }, 250);
-}
-
-function runFilter(){
-  if (!dataset.length){
-    document.getElementById("result").innerHTML = "";
-    return;
+  function flashscoreSearchUrl(playerName){
+    // Reliable: open Flashscore web search; user can star/favourite from there.
+    // (Deep-link directly into app is not consistently supported across Android builds.)
+    const q = encodeURIComponent(playerName);
+    return `https://www.flashscore.com/search/?q=${q}`;
   }
 
-  const tour=document.getElementById("tour").value;
-  const first=dataset[0]||{};
+  function clearOutput(){
+    $("tbody").innerHTML = "";
+    $("result").style.display = "none";
+    $("err").style.display = "none";
+    $("err").textContent = "";
+  }
 
-  const holdCol=findColumn(first,["SH %","SH%","Hold %","Hold","Service Hold %"]);
-  const oppHoldCol=findColumn(first,["OpH %","OpH%","Opponent Hold %","Opp Hold"]);
-  const nameCol=findColumn(first,["Player","player","Name","name"]);
+  function showError(msg){
+    $("err").textContent = msg;
+    $("err").style.display = "block";
+    $("result").style.display = "none";
+  }
 
-  let html = `<table>
-    <tr>
-      <th>Player</th><th></th><th>Hold</th><th>Break</th><th>Combined</th>
-    </tr>`;
+  $("runBtn").addEventListener("click", () => {
+    clearOutput();
 
-  dataset.forEach(r=>{
-    const hold = toNumber(holdCol ? r[holdCol] : null);
-    const oppHold = toNumber(oppHoldCol ? r[oppHoldCol] : null);
-    if(!Number.isFinite(hold) || !Number.isFinite(oppHold)) return;
+    const f = $("file").files?.[0];
+    if (!f) return showError("Choose a CSV file first.");
 
-    const brk = 100 - oppHold;
-    const comb = hold + brk;
+    const tour = $("tour").value;
+    const holdMin = HOLD_THRESH[tour];
+    const maxOdds = num($("maxOdds").value);
 
-    if(hold >= HOLD_THRESHOLD[tour] && comb >= COMBINED_THRESHOLD){
-      const player = String(nameCol ? (r[nameCol] || "") : "").trim();
-      if(!player) return;
-
-      html += `
-        <tr>
-          <td>${player}</td>
-          <td><a class="pill" href="javascript:void(0)" onclick='lightning(${JSON.stringify(player)})'>⚡</a></td>
-          <td>${hold.toFixed(2)}</td>
-          <td>${brk.toFixed(2)}</td>
-          <td>${comb.toFixed(2)}</td>
-        </tr>`;
+    if (!Number.isFinite(maxOdds) || maxOdds <= 1) {
+      return showError("Max odds must be a number > 1.00 (e.g. 1.70).");
     }
+
+    Papa.parse(f, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (res) => {
+        try{
+          const rows = res.data || [];
+          if (!rows.length) return showError("No rows found in CSV.");
+
+          // Expected headers (case-insensitive matching included)
+          // Player, Odds, SH % (hold), and either "OpH %" (opponent hold) or "Opponent Hold" etc.
+          const out = [];
+
+          for (const r0 of rows){
+            const player = String(pick(r0, ["Player","player","Name","name"]) ?? "").trim();
+            if (!player) continue;
+
+            const odds = num(pick(r0, ["Odds","odds","Price","price"]));
+            if (!Number.isFinite(odds)) continue;
+
+            // Odds filter (new)
+            if (odds > maxOdds) continue;
+
+            const hold = num(pick(r0, ["SH %","SH%","Hold","Hold %","Hold%","Service Hold","Service Hold %"]));
+            const opHold = num(pick(r0, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold","OppHold","OppHold %"]));
+
+            if (!Number.isFinite(hold) || !Number.isFinite(opHold)) continue;
+
+            const brk = 100 - opHold;
+            const combined = hold + brk;
+
+            if (hold >= holdMin && combined >= COMBINED_MIN){
+              out.push({
+                player,
+                odds,
+                hold,
+                brk,
+                combined
+              });
+            }
+          }
+
+          // Sort by Combined desc (then Hold desc)
+          out.sort((a,b)=> (b.combined - a.combined) || (b.hold - a.hold));
+
+          // Render
+          const tb = $("tbody");
+          tb.innerHTML = "";
+
+          for (const r of out){
+            const tr = document.createElement("tr");
+
+            const tdP = document.createElement("td");
+            const wrap = document.createElement("div");
+            wrap.className = "playerCell";
+
+            const name = document.createElement("div");
+            name.className = "pname";
+            name.textContent = r.player;
+
+            const btn = document.createElement("button");
+            btn.className = "fsBtn";
+            btn.type = "button";
+            btn.textContent = "⚡ Flashscore";
+            btn.addEventListener("click", async () => {
+              await copyText(r.player);
+              // open web search; if Flashscore app has verified links enabled, Android may open it
+              window.open(flashscoreSearchUrl(r.player), "_blank", "noopener,noreferrer");
+            });
+
+            wrap.appendChild(name);
+            wrap.appendChild(btn);
+            tdP.appendChild(wrap);
+
+            const tdOdds = document.createElement("td");
+            tdOdds.textContent = r.odds.toFixed(2);
+
+            const tdH = document.createElement("td");
+            tdH.textContent = r.hold.toFixed(2);
+
+            const tdB = document.createElement("td");
+            tdB.textContent = r.brk.toFixed(2);
+
+            const tdC = document.createElement("td");
+            tdC.textContent = r.combined.toFixed(2);
+
+            tr.appendChild(tdP);
+            tr.appendChild(tdOdds);
+            tr.appendChild(tdH);
+            tr.appendChild(tdB);
+            tr.appendChild(tdC);
+            tb.appendChild(tr);
+          }
+
+          $("result").style.display = "block";
+        }catch(e){
+          showError("Error processing CSV. Check your column headers.\n\n" + (e?.message || e));
+        }
+      },
+      error: (err) => showError("Could not parse CSV.\n\n" + (err?.message || err))
+    });
   });
-
-  html += `</table>`;
-  document.getElementById("result").innerHTML = html;
-}
 </script>
-
 </body>
 </html>
