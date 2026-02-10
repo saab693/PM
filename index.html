@@ -12,37 +12,58 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
-  body{
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    background:#0f0f14;
-    color:#eee;
-    margin:0;
-    padding:20px;
-  }
-  h1{font-size:34px;margin:0 0 18px 0;font-weight:800;}
-  .bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:0 0 18px 0;}
-  label{font-size:18px}
-  select,input{
-    padding:10px 12px;border-radius:10px;border:1px solid #2a2a3a;
-    background:#151522;color:#eee;font-size:16px;
-  }
-  button{
-    background:#6a00ff;color:white;border:none;
-    padding:10px 16px;border-radius:10px;font-weight:800;font-size:16px;
-  }
-  table{
-    width:100%;border-collapse:collapse;margin-top:20px;
-    background:#151522;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden;
-  }
-  th,td{padding:12px 10px;border-bottom:1px solid #2a2a3a;text-align:left;}
-  th{font-size:18px}
-  tr:last-child td{border-bottom:none}
-  .pill{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:34px;height:34px;border-radius:10px;
-    background:#101020;border:1px solid #2a2a3a;
-    color:#a78bfa;font-weight:900;text-decoration:none;
-  }
+body{
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:#0f0f14;
+  color:#eee;
+  margin:0;
+  padding:20px;
+}
+h1{font-size:34px;margin:0 0 18px 0;font-weight:800;}
+.bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:0 0 18px 0;}
+label{font-size:18px}
+select,input{
+  padding:10px 12px;border-radius:10px;border:1px solid #2a2a3a;
+  background:#151522;color:#eee;font-size:16px;
+}
+button{
+  background:#6a00ff;color:white;border:none;
+  padding:10px 16px;border-radius:10px;font-weight:800;font-size:16px;
+}
+table{
+  width:100%;border-collapse:collapse;margin-top:20px;
+  background:#151522;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden;
+}
+th,td{padding:12px 10px;border-bottom:1px solid #2a2a3a;text-align:left;}
+th{font-size:18px}
+tr:last-child td{border-bottom:none}
+
+.actions{display:flex;gap:10px;align-items:center;}
+.pill{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:40px;height:40px;border-radius:12px;
+  background:#101020;border:1px solid #2a2a3a;
+  color:#a78bfa;font-weight:900;text-decoration:none;
+  font-size:20px;
+}
+.pill:active{transform:scale(0.97)}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  background:#151522;
+  border:1px solid #2a2a3a;
+  padding:10px 14px;
+  border-radius:12px;
+  color:#eee;
+  font-weight:700;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 180ms ease;
+}
+.toast.show{opacity:1}
 </style>
 </head>
 
@@ -66,131 +87,103 @@
 </div>
 
 <div id="result"></div>
+<div id="toast" class="toast">Copied</div>
 
 <script>
-  // Thresholds
-  const HOLD_THRESHOLD = { WTA: 66, ATP: 78, CH: 80 };
-  const COMBINED_THRESHOLD = 100;
+const HOLD_THRESHOLD = { WTA: 66, ATP: 78, CH: 80 };
+const COMBINED_THRESHOLD = 100;
+const FLASHSCORE_PACKAGE = "eu.livesport.FlashScore_com";
 
-  // Flashscore Android package (Play Store)
-  const FLASHSCORE_PKG = "eu.livesport.FlashScore_com";
+let dataset = [];
 
-  let dataset = [];
+document.getElementById("file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-  // Load CSV
-  document.getElementById("file").addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (h) => String(h || "").trim(),
+    complete: (res) => dataset = res.data || []
+  });
+});
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (h) => String(h || "").trim(),
-      complete: (res) => { dataset = res.data || []; }
-    });
+function toNumber(v){
+  if (!v) return NaN;
+  const n = parseFloat(String(v).replace("%","").trim());
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function findColumn(row, candidates){
+  for (const c of candidates){
+    if (row[c] !== undefined) return c;
+  }
+  return null;
+}
+
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),900);
+}
+
+async function openFlashscore(player){
+  await navigator.clipboard.writeText(player);
+  toast("Copied: "+player);
+
+  setTimeout(()=>{
+    window.location.href=`intent://#Intent;package=${FLASHSCORE_PACKAGE};end`;
+  },250);
+}
+
+function runFilter(){
+  if (!dataset.length) return;
+
+  const tour=document.getElementById("tour").value;
+  const first=dataset[0]||{};
+
+  const holdCol=findColumn(first,["SH %","SH%","Hold %","Hold"]);
+  const oppHoldCol=findColumn(first,["OpH %","OpH%","Opponent Hold %"]);
+  const nameCol=findColumn(first,["Player","player","Name"]);
+
+  let html=`<table>
+  <tr>
+    <th>Player</th>
+    <th></th>
+    <th>Hold</th>
+    <th>Break</th>
+    <th>Combined</th>
+  </tr>`;
+
+  dataset.forEach(r=>{
+    const hold=toNumber(r[holdCol]);
+    const oppHold=toNumber(r[oppHoldCol]);
+    if(!Number.isFinite(hold)||!Number.isFinite(oppHold))return;
+
+    const brk=100-oppHold;
+    const comb=hold+brk;
+
+    if(hold>=HOLD_THRESHOLD[tour]&&comb>=COMBINED_THRESHOLD){
+      const player=(r[nameCol]||"").trim();
+      if(!player)return;
+
+      html+=`
+      <tr>
+        <td>${player}</td>
+        <td class="actions">
+          <a class="pill" href="javascript:void(0)" onclick='openFlashscore(${JSON.stringify(player)})'>⚡</a>
+        </td>
+        <td>${hold.toFixed(2)}</td>
+        <td>${brk.toFixed(2)}</td>
+        <td>${comb.toFixed(2)}</td>
+      </tr>`;
+    }
   });
 
-  function toNumber(v){
-    if (v === null || v === undefined) return NaN;
-    const n = parseFloat(String(v).replace("%", "").trim());
-    return Number.isFinite(n) ? n : NaN;
-  }
-
-  function findColumn(row, candidates){
-    for (const c of candidates){
-      if (row[c] !== undefined) return c;
-    }
-    return null;
-  }
-
-  // Attempt to open Flashscore APP to the search page.
-  // If the app doesn't catch it, fallback to the web URL.
-  function openFlashscore(player){
-    const q = encodeURIComponent(player);
-
-    // Real Flashscore search URL (app can claim this via App Links)
-    const webUrl = `https://www.flashscore.com/search/?query=${q}`;
-
-    // Intent pointing to a REAL Flashscore URL (not a fake "search" host)
-    const intentUrl =
-      `intent://www.flashscore.com/search/?query=${q}` +
-      `#Intent;scheme=https;package=${FLASHSCORE_PKG};end`;
-
-    // Try app first
-    window.location.href = intentUrl;
-
-    // Fallback to web after a short delay
-    setTimeout(() => {
-      window.location.href = webUrl;
-    }, 600);
-  }
-
-  function runFilter(){
-    if (!dataset.length){
-      document.getElementById("result").innerHTML = "";
-      return;
-    }
-
-    const tour = document.getElementById("tour").value;
-    const firstRow = dataset[0] || {};
-
-    const holdCol = findColumn(firstRow, ["SH %","SH%","Hold %","Hold","Service Hold %"]);
-    const oppHoldCol = findColumn(firstRow, ["OpH %","OpH%","Opponent Hold %","Opp Hold"]);
-    const nameCol = findColumn(firstRow, ["Player","player","Name","name"]);
-
-    const out = [];
-
-    dataset.forEach(row => {
-      const hold = toNumber(holdCol ? row[holdCol] : null);
-      const oppHold = toNumber(oppHoldCol ? row[oppHoldCol] : null);
-      if (!Number.isFinite(hold) || !Number.isFinite(oppHold)) return;
-
-      const breakPct = 100 - oppHold;
-      const combined = hold + breakPct;
-
-      if (hold >= HOLD_THRESHOLD[tour] && combined >= COMBINED_THRESHOLD){
-        out.push({
-          player: (nameCol ? (row[nameCol] || "") : ""),
-          hold: hold.toFixed(2),
-          brk: breakPct.toFixed(2),
-          comb: combined.toFixed(2)
-        });
-      }
-    });
-
-    renderTable(out);
-  }
-
-  function renderTable(rows){
-    let html = `
-      <table>
-        <tr>
-          <th>Player</th>
-          <th></th>
-          <th>Hold</th>
-          <th>Break</th>
-          <th>Combined</th>
-        </tr>
-    `;
-
-    rows.forEach(r => {
-      const safeName = r.player.replace(/"/g, "&quot;");
-      html += `
-        <tr>
-          <td>${safeName}</td>
-          <td>
-            <a class="pill" href="javascript:void(0)" onclick="openFlashscore('${safeName}')">📱</a>
-          </td>
-          <td>${r.hold}</td>
-          <td>${r.brk}</td>
-          <td>${r.comb}</td>
-        </tr>
-      `;
-    });
-
-    html += `</table>`;
-    document.getElementById("result").innerHTML = html;
-  }
+  html+=`</table>`;
+  document.getElementById("result").innerHTML=html;
+}
 </script>
 
 </body>
