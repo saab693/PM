@@ -93,7 +93,6 @@
 
 <script>
   // Thresholds
-  // WTA: 66, ATP: 78, Challenger: 80 (more selective)
   const HOLD = { WTA: 66, ATP: 78, CH: 80 };
   const COMBINED = 100;
 
@@ -195,7 +194,7 @@
       html += `
         <tr>
           <td>${r.Player}</td>
-          <td><a target="_blank" href="https://www.flashscore.com/search/?q=${encodeURIComponent(r.Player)}">🔎</a></td>
+          <td><a target="_blank" href="https://www.flashscore.com/search/?query=${encodeURIComponent(r.Player)}">🔎</a></td>
           <td>${r.Hold}</td>
           <td>${r.Break}</td>
           <td>${r.Combined}</td>
