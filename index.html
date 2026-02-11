@@ -1,484 +1,208 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>PM Filter</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>PM Filter</title>
 
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#6a00ff">
-  <link rel="icon" href="PM_icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#6a00ff">
+<link rel="icon" href="PM_icon.png">
 
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-  <style>
-    :root{
-      --bg:#090a12;
-      --card:rgba(255,255,255,.06);
-      --card2:rgba(255,255,255,.08);
-      --text:#f2f2f7;
-      --muted:rgba(242,242,247,.72);
-      --line:rgba(255,255,255,.10);
-      --accent:#6a00ff;
-      --shadow:0 18px 60px rgba(0,0,0,.55);
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:radial-gradient(900px 500px at 20% -10%, rgba(106,0,255,.25), transparent 55%),
-                 radial-gradient(900px 500px at 90% 0%, rgba(106,0,255,.18), transparent 60%),
-                 var(--bg);
-      color:var(--text);
-      min-height:100vh;
-      padding:18px 14px 28px;
-    }
-    .wrap{max-width:980px;margin:0 auto}
-    h1{
-      margin:18px 0 14px;
-      font-size:56px;
-      letter-spacing:-.02em;
-      line-height:1;
-      font-weight:800;
-    }
+<style>
+:root{
+  --bg:#090a12;
+  --card:rgba(255,255,255,.06);
+  --text:#f2f2f7;
+  --muted:rgba(242,242,247,.72);
+  --line:rgba(255,255,255,.10);
+  --accent:#6a00ff;
+  --shadow:0 18px 60px rgba(0,0,0,.55);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:radial-gradient(900px 500px at 20% -10%, rgba(106,0,255,.25), transparent 55%),
+             radial-gradient(900px 500px at 90% 0%, rgba(106,0,255,.18), transparent 60%),
+             var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:18px 14px 28px;
+}
+.wrap{max-width:980px;margin:0 auto}
+h1{margin:18px 0 14px;font-size:56px;font-weight:800}
 
-    .panel{
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:14px;
-    }
+.panel{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:14px;
+}
 
-    .grid{
-      display:grid;
-      gap:12px;
-      grid-template-columns: 1fr;
-    }
+.row{display:grid;gap:12px;grid-template-columns:1fr}
 
-    .row{
-      display:grid;
-      gap:12px;
-      grid-template-columns: 1fr;
-    }
+.label{font-size:12px;color:var(--muted);margin-bottom:6px}
 
-    .label{font-size:12px;color:var(--muted);margin-bottom:6px}
-    input[type="file"], select, input[type="number"]{
-      width:100%;
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      color:var(--text);
-      border-radius:14px;
-      padding:12px 12px;
-      font-size:16px;
-      outline:none;
-    }
-    input[type="number"]{appearance:textfield}
-    .btn{
-      width:100%;
-      background:linear-gradient(180deg, rgba(106,0,255,1), rgba(106,0,255,.82));
-      border:none;
-      color:white;
-      font-weight:800;
-      padding:14px 14px;
-      border-radius:16px;
-      font-size:18px;
-      box-shadow:0 10px 30px rgba(106,0,255,.28);
-      cursor:pointer;
-    }
-    .btn:active{transform:translateY(1px)}
-    .hint{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-    }
+input,select{
+  width:100%;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+  color:var(--text);
+  border-radius:14px;
+  padding:12px;
+  font-size:16px;
+}
 
-    .table-wrap{
-      margin-top:14px;
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      overflow:hidden;
-    }
+.btn{
+  width:100%;
+  background:linear-gradient(180deg,#6a00ff,#5300c7);
+  border:none;
+  color:white;
+  font-weight:800;
+  padding:14px;
+  border-radius:16px;
+  font-size:18px;
+  cursor:pointer;
+}
 
-    .scroller{
-      overflow:auto;
-      -webkit-overflow-scrolling:touch;
-    }
+.table-wrap{
+  margin-top:14px;
+  border-radius:var(--radius);
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  overflow:hidden;
+}
+.scroller{overflow:auto}
+table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+thead th{
+  position:sticky;top:0;background:#10101a;border-bottom:1px solid var(--line);
+  padding:12px;font-size:14px
+}
+tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
+.player{font-weight:800;font-size:18px}
 
-    table{
-      border-collapse:separate;
-      border-spacing:0;
-      width:max-content;
-      min-width:100%;
-      font-variant-numeric: tabular-nums;
-    }
-    thead th{
-      position:sticky;
-      top:0;
-      z-index:2;
-      background:rgba(16,16,26,.92);
-      backdrop-filter: blur(8px);
-      border-bottom:1px solid var(--line);
-      text-align:left;
-      padding:12px 12px;
-      font-size:14px;
-      color:rgba(242,242,247,.85);
-      white-space:nowrap;
-    }
-    tbody td{
-      padding:12px 12px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      white-space:nowrap;
-      vertical-align:middle;
-    }
-    tbody tr:hover{background:rgba(255,255,255,.03)}
-    .player{
-      font-weight:800;
-      font-size:18px;
-      letter-spacing:-.01em;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.05);
-      color:rgba(242,242,247,.9);
-      font-weight:700;
-      cursor:pointer;
-      user-select:none;
-    }
-    .pill:active{transform:translateY(1px)}
-    .bolt{font-size:16px;line-height:1}
-    .muted{color:var(--muted)}
-    .right{text-align:right}
-
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:18px;
-      transform:translateX(-50%);
-      background:rgba(20,20,28,.92);
-      border:1px solid rgba(255,255,255,.12);
-      color:rgba(242,242,247,.95);
-      padding:10px 12px;
-      border-radius:12px;
-      box-shadow:0 16px 50px rgba(0,0,0,.6);
-      font-weight:700;
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .18s ease, transform .18s ease;
-    }
-    .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px);}
-
-    @media (min-width: 760px){
-      .row{grid-template-columns: 1.1fr .6fr .6fr .6fr;}
-      .btn{width:auto; padding:14px 22px}
-    }
-  </style>
+.pill{
+  padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
+  cursor:pointer;font-weight:700
+}
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <h1>PM Filter</h1>
+<div class="wrap">
+<h1>PM Filter</h1>
 
-    <div class="panel">
-      <div class="grid">
-        <div>
-          <div class="label">CSV file</div>
-          <input id="file" type="file" accept=".csv,text/csv" />
-        </div>
+<div class="panel">
 
-        <div class="row">
-          <div>
-            <div class="label">Tour</div>
-            <select id="tour">
-              <option value="WTA">WTA</option>
-              <option value="ATP">ATP</option>
-              <option value="CH">CH</option>
-            </select>
-          </div>
+<div class="row">
+<div>
+<div class="label">CSV file</div>
+<input id="file" type="file" accept=".csv,text/csv">
+</div>
 
-          <div>
-            <div class="label">Max odds</div>
-            <input id="maxOdds" type="number" step="0.01" value="1.70" inputmode="decimal" />
-          </div>
+<div>
+<div class="label">Tour</div>
+<select id="tour">
+<option value="WTA">WTA</option>
+<option value="ATP">ATP</option>
+<option value="CH">CH</option>
+</select>
+</div>
 
-          <div>
-            <div class="label">Combined ≥</div>
-            <input id="minCombined" type="number" step="0.1" value="100" inputmode="decimal" />
-          </div>
+<div>
+<div class="label">Min odds</div>
+<input id="minOdds" type="number" step="0.01" value="1.15">
+</div>
 
-          <div style="display:flex;align-items:end;">
-            <button class="btn" id="run">Run Filter</button>
-          </div>
-        </div>
+<div>
+<div class="label">Max odds</div>
+<input id="maxOdds" type="number" step="0.01" value="1.70">
+</div>
 
-        <div class="hint">
-          ⚡ copies player name. (Flashscore links are intentionally not opened to avoid store/browser hijacks on Android PWAs.)
-        </div>
-      </div>
+<div>
+<div class="label">Combined ≥</div>
+<input id="minCombined" type="number" step="0.1" value="100">
+</div>
 
-      <div id="out" class="table-wrap" style="display:none;">
-        <div class="scroller">
-          <table id="table">
-            <thead id="thead"></thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+<button class="btn" id="run">Run Filter</button>
+</div>
 
-  <div class="toast" id="toast"></div>
+<div id="out" class="table-wrap" style="display:none">
+<div class="scroller">
+<table>
+<thead id="thead"></thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
 
 <script>
-  // --- thresholds ---
-  const HOLD_THRESH = { WTA: 66, ATP: 78, CH: 80 }; // as requested
-  // Break = 100 - Opponent Hold
-  // Combined = Hold + Break
-  // Additional filters: odds <= maxOdds, combined >= minCombined
+const HOLD_THRESH={WTA:66,ATP:78,CH:78};
 
-  const fileEl = document.getElementById("file");
-  const tourEl = document.getElementById("tour");
-  const maxOddsEl = document.getElementById("maxOdds");
-  const minCombinedEl = document.getElementById("minCombined");
-  const runBtn = document.getElementById("run");
+const fileEl=document.getElementById("file");
+const tourEl=document.getElementById("tour");
+const minOddsEl=document.getElementById("minOdds");
+const maxOddsEl=document.getElementById("maxOdds");
+const minCombinedEl=document.getElementById("minCombined");
 
-  const outWrap = document.getElementById("out");
-  const thead = document.getElementById("thead");
-  const tbody = document.getElementById("tbody");
-  const toast = document.getElementById("toast");
+function num(x){return parseFloat(String(x).replace("%",""))}
 
-  let toastTimer = null;
-  function showToast(msg){
-    toast.textContent = msg;
-    toast.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=>toast.classList.remove("show"), 1100);
-  }
+function extract(row){
+return{
+player:row.Player||row.player||"",
+odds:num(row.Odds),
+hold:num(row["SH %"]),
+opp:num(row["OpH %"])
+};
+}
 
-  function num(x){
-    if (x === null || x === undefined) return NaN;
-    const s = String(x)
-      .trim()
-      .replaceAll("%","")
-      .replaceAll("−","-")
-      .replaceAll(",","."); // allow comma decimals
-    const v = parseFloat(s);
-    return Number.isFinite(v) ? v : NaN;
-  }
+function filter(data){
+const holdMin=HOLD_THRESH[tourEl.value];
+const minOdds=num(minOddsEl.value);
+const maxOdds=num(maxOddsEl.value);
+const minComb=num(minCombinedEl.value);
 
-  // Try multiple header names (your CSVs can vary)
-  function pick(row, names){
-    for(const n of names){
-      if (row[n] !== undefined) return row[n];
-    }
-    return undefined;
-  }
+return data.map(extract).filter(r=>{
+if(!r.player)return false;
+if(r.odds<minOdds||r.odds>maxOdds)return false;
+if(r.hold<holdMin)return false;
+const brk=100-r.opp;
+return (r.hold+brk)>=minComb;
+});
+}
 
-  // Normalise a row to get Player / Odds / Hold / OppHold
-  function extractCore(row){
-    const player = pick(row, ["Player","player","Name","name"]);
-    const oddsRaw = pick(row, ["Odds","odds","Price","price"]);
-    const shRaw   = pick(row, ["SH %","SH%","Hold","Hold%","Hold %","Service Hold%","Service Hold %"]);
-    const ophRaw  = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold%","Opponent Hold %","Opp Hold%","Opp Hold %","OppHold%"]);
-
-    return {
-      player: (player ?? "").toString().trim(),
-      odds: num(oddsRaw),
-      hold: num(shRaw),
-      oppHold: num(ophRaw),
-      raw: row
-    };
-  }
-
-  async function copyText(text){
-    try{
-      await navigator.clipboard.writeText(text);
-      showToast("Copied: " + text);
-    }catch(e){
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      showToast("Copied: " + text);
-    }
-  }
-
-  function buildHeader(allExtraCols){
-    // Minimal fixed columns + your original extras (so you can "see all columns")
-    const cols = [
-      { key:"player", label:"Player" },
-      { key:"copy", label:"" },
-      { key:"odds", label:"Odds", right:true },
-      { key:"hold", label:"Hold", right:true },
-      { key:"break", label:"Break", right:true },
-      { key:"combined", label:"Combined", right:true },
-      ...allExtraCols.map(c => ({ key:c, label:c }))
-    ];
-
-    thead.innerHTML = "";
-    const tr = document.createElement("tr");
-    cols.forEach(c=>{
-      const th = document.createElement("th");
-      th.textContent = c.label;
-      if (c.right) th.className = "right";
-      tr.appendChild(th);
-    });
-    thead.appendChild(tr);
-    return cols;
-  }
-
-  function render(rows){
-    // Collect extra columns (everything except the core columns we already show)
-    const seen = new Set();
-    const coreNames = new Set([
-      "Player","player","Name","name",
-      "Odds","odds","Price","price",
-      "SH %","SH%","Hold","Hold%","Hold %","Service Hold%","Service Hold %",
-      "OpH %","OpH%","Opponent Hold","Opponent Hold%","Opponent Hold %","Opp Hold%","Opp Hold %","OppHold%"
-    ]);
-
-    rows.forEach(r=>{
-      Object.keys(r.raw).forEach(k=>{
-        if (!coreNames.has(k)) seen.add(k);
-      });
-    });
-
-    const extraCols = Array.from(seen);
-    // keep it stable: common ones first if present
-    const preferred = ["SPW %","SPW%","SPW","TPW","RPW","A%","DF%","1stIn","1st%","2nd%"];
-    extraCols.sort((a,b)=>{
-      const ia = preferred.indexOf(a);
-      const ib = preferred.indexOf(b);
-      if (ia === -1 && ib === -1) return a.localeCompare(b);
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
-
-    const cols = buildHeader(extraCols);
-
-    tbody.innerHTML = "";
-    rows.forEach(r=>{
-      const tr = document.createElement("tr");
-
-      cols.forEach(c=>{
-        const td = document.createElement("td");
-
-        if (c.key === "player"){
-          const div = document.createElement("div");
-          div.className = "player";
-          div.textContent = r.player;
-          td.appendChild(div);
-        } else if (c.key === "copy"){
-          const btn = document.createElement("span");
-          btn.className = "pill";
-          btn.title = "Copy player name";
-          btn.innerHTML = `<span class="bolt">⚡</span><span class="muted">Copy</span>`;
-          btn.addEventListener("click", ()=> copyText(r.player));
-          td.appendChild(btn);
-        } else if (c.key === "odds"){
-          td.className = "right";
-          td.textContent = Number.isFinite(r.odds) ? r.odds.toFixed(2) : "";
-        } else if (c.key === "hold"){
-          td.className = "right";
-          td.textContent = Number.isFinite(r.hold) ? r.hold.toFixed(2) : "";
-        } else if (c.key === "break"){
-          td.className = "right";
-          td.textContent = Number.isFinite(r.brk) ? r.brk.toFixed(2) : "";
-        } else if (c.key === "combined"){
-          td.className = "right";
-          td.textContent = Number.isFinite(r.combined) ? r.combined.toFixed(2) : "";
-        } else {
-          // extra columns: show raw value as-is
-          const v = r.raw[c.key];
-          td.textContent = (v === undefined || v === null) ? "" : String(v);
-        }
-
-        tr.appendChild(td);
-      });
-
-      tbody.appendChild(tr);
-    });
-
-    outWrap.style.display = "block";
-  }
-
-  function filterData(data){
-    const tour = tourEl.value;
-    const holdMin = HOLD_THRESH[tour];
-    const maxOdds = num(maxOddsEl.value);
-    const minCombined = num(minCombinedEl.value);
-
-    const rows = [];
-    for(const row of data){
-      const r = extractCore(row);
-      if (!r.player) continue;
-
-      // odds filter (if odds missing, exclude)
-      if (!Number.isFinite(r.odds)) continue;
-      if (Number.isFinite(maxOdds) && r.odds > maxOdds) continue;
-
-      // hold filter
-      if (!Number.isFinite(r.hold)) continue;
-      if (r.hold < holdMin) continue;
-
-      // break/combined require opponent hold
-      if (!Number.isFinite(r.oppHold)) continue;
-      const brk = 100 - r.oppHold;
-      const combined = r.hold + brk;
-
-      if (Number.isFinite(minCombined) && combined < minCombined) continue;
-
-      rows.push({
-        ...r,
-        brk,
-        combined
-      });
-    }
-
-    // Sort: best combined first
-    rows.sort((a,b)=> (b.combined - a.combined) || (b.hold - a.hold) || (a.player.localeCompare(b.player)));
-    return rows;
-  }
-
-  runBtn.addEventListener("click", ()=>{
-    const file = fileEl.files && fileEl.files[0];
-    if (!file){
-      showToast("Choose a CSV first");
-      return;
-    }
-
-    Papa.parse(file, {
-      header:true,
-      skipEmptyLines:true,
-      complete:(res)=>{
-        const data = Array.isArray(res.data) ? res.data : [];
-        const filtered = filterData(data);
-        render(filtered);
-      },
-      error:()=>{
-        showToast("Couldn’t read CSV");
-      }
-    });
-  });
-
-  // Service worker (optional but keeps it installable + offline shell)
-  if ("serviceWorker" in navigator){
-    window.addEventListener("load", ()=>{
-      navigator.serviceWorker.register("./sw.js").catch(()=>{});
-    });
-  }
+document.getElementById("run").onclick=()=>{
+Papa.parse(fileEl.files[0],{
+header:true,
+complete:(res)=>{
+const rows=filter(res.data);
+const thead=document.getElementById("thead");
+const tbody=document.getElementById("tbody");
+thead.innerHTML="<tr><th>Player</th><th></th><th>Odds</th><th>Hold</th><th>Break</th><th>Combined</th></tr>";
+tbody.innerHTML="";
+rows.forEach(r=>{
+const brk=100-r.opp;
+const tr=document.createElement("tr");
+tr.innerHTML=`
+<td class="player">${r.player}</td>
+<td><span class="pill" onclick="navigator.clipboard.writeText('${r.player}')">⚡</span></td>
+<td>${r.odds.toFixed(2)}</td>
+<td>${r.hold.toFixed(1)}</td>
+<td>${brk.toFixed(1)}</td>
+<td>${(r.hold+brk).toFixed(1)}</td>`;
+tbody.appendChild(tr);
+});
+document.getElementById("out").style.display="block";
+}});
+};
 </script>
 </body>
 </html>
-```0
