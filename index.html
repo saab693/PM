@@ -149,118 +149,87 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 </div>
 
 <script>
-const fileEl = document.getElementById("file");
-const tourEl = document.getElementById("tour");
-const holdMinEl = document.getElementById("holdMin");
-const holdHintEl = document.getElementById("holdHint");
-const minOddsEl = document.getElementById("minOdds");
-const maxOddsEl = document.getElementById("maxOdds");
-const minCombinedEl = document.getElementById("minCombined");
-
 const HOLD_PRESETS = {
   PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
 };
 
-function rebuildHoldDropdown(){
-  const key = tourEl.value;
-  const preset = HOLD_PRESETS[key];
+const fileEl=document.getElementById("file");
+const tourEl=document.getElementById("tour");
+const holdMinEl=document.getElementById("holdMin");
+const holdHintEl=document.getElementById("holdHint");
+const minOddsEl=document.getElementById("minOdds");
+const maxOddsEl=document.getElementById("maxOdds");
+const minCombinedEl=document.getElementById("minCombined");
 
-  holdMinEl.innerHTML = "";
+function rebuildHoldDropdown(){
+  const preset=HOLD_PRESETS[tourEl.value];
+  holdMinEl.innerHTML="";
   preset.values.forEach(v=>{
-    const opt = document.createElement("option");
-    opt.value = String(v);
-    opt.textContent = `${v}%`;
+    const opt=document.createElement("option");
+    opt.value=v;
+    opt.textContent=v+"%";
     holdMinEl.appendChild(opt);
   });
-
-  holdMinEl.value = String(preset.def);
-  holdHintEl.textContent = preset.label + " (default selected)";
+  holdMinEl.value=preset.def;
+  holdHintEl.textContent=preset.label;
 }
-
-tourEl.addEventListener("change", rebuildHoldDropdown);
+tourEl.addEventListener("change",rebuildHoldDropdown);
 rebuildHoldDropdown();
 
-function num(x){
-  return parseFloat(String(x ?? "").trim().replace("%","").replace(",","."));
-}
+function num(x){return parseFloat(String(x??"").replace("%","").replace(",",".").trim());}
 
 function extract(row){
-  const player = row.Player ?? row.player ?? row.Name ?? row.name ?? "";
-  const odds = num(row.Odds ?? row.odds ?? row.Price ?? row.price);
-  const hold = num(row["SH %"] ?? row["SH%"] ?? row.Hold ?? row["Hold%"] ?? row["Hold %"]);
-  const opp  = num(row["OpH %"] ?? row["OpH%"] ?? row["Opponent hold"] ?? row["Opponent Hold"] ?? row["Opponent Hold %"]);
-  return { player: String(player).trim(), odds, hold, opp };
+  return{
+    player:row.Player||row.player||"",
+    odds:num(row.Odds),
+    hold:num(row["SH %"]),
+    opp:num(row["OpH %"])
+  };
 }
 
 function filter(data){
-  const holdMin = num(holdMinEl.value);
-  const minOdds = num(minOddsEl.value);
-  const maxOdds = num(maxOddsEl.value);
-  const minComb = num(minCombinedEl.value);
+  const holdMin=num(holdMinEl.value);
+  const minOdds=num(minOddsEl.value);
+  const maxOdds=num(maxOddsEl.value);
+  const minComb=num(minCombinedEl.value);
 
   return data.map(extract).filter(r=>{
-    if(!r.player) return false;
-    if(!Number.isFinite(r.odds)) return false;
-    if(Number.isFinite(minOdds) && r.odds < minOdds) return false;
-    if(Number.isFinite(maxOdds) && r.odds > maxOdds) return false;
-
-    if(!Number.isFinite(r.hold)) return false;
-    if(r.hold < holdMin) return false;
-
-    if(!Number.isFinite(r.opp)) return false;
-    const brk = 100 - r.opp;
-    const comb = r.hold + brk;
-
-    if(Number.isFinite(minComb) && comb < minComb) return false;
-    return true;
+    if(!r.player)return false;
+    if(r.odds<minOdds||r.odds>maxOdds)return false;
+    if(r.hold<holdMin)return false;
+    const brk=100-r.opp;
+    return (r.hold+brk)>=minComb;
   }).map(r=>{
-    const brk = 100 - r.opp;
-    const comb = r.hold + brk;
-    return { ...r, brk, comb };
-  }).sort((a,b)=> (b.comb-a.comb) || (b.hold-a.hold) || a.player.localeCompare(b.player));
+    const brk=100-r.opp;
+    return {...r,brk,comb:r.hold+brk};
+  });
 }
 
-document.getElementById("run").onclick = ()=>{
-  const f = fileEl.files && fileEl.files[0];
-  if(!f) return;
-
-  Papa.parse(f,{
+document.getElementById("run").onclick=()=>{
+  Papa.parse(fileEl.files[0],{
     header:true,
-    skipEmptyLines:true,
     complete:(res)=>{
-      const rows = filter(res.data || []);
-      const thead = document.getElementById("thead");
-      const tbody = document.getElementById("tbody");
-
-      thead.innerHTML = "<tr><th>Player</th><th></th><th>Odds</th><th>Hold</th><th>Break</th><th>Combined</th></tr>";
-      tbody.innerHTML = "";
-
+      const rows=filter(res.data);
+      const thead=document.getElementById("thead");
+      const tbody=document.getElementById("tbody");
+      thead.innerHTML="<tr><th>Player</th><th></th><th>Odds</th><th>Hold</th><th>Break</th><th>Combined</th></tr>";
+      tbody.innerHTML="";
       rows.forEach(r=>{
-        const tr = document.createElement("tr");
-        const safeName = r.player.replace(/'/g, "\\'");
-        tr.innerHTML = `
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
           <td class="player">${r.player}</td>
-          <td><span class="pill" onclick="navigator.clipboard.writeText('${safeName}')">⚡</span></td>
+          <td><span class="pill" onclick="navigator.clipboard.writeText('${r.player}')">⚡</span></td>
           <td>${r.odds.toFixed(2)}</td>
           <td>${r.hold.toFixed(1)}</td>
           <td>${r.brk.toFixed(1)}</td>
-          <td>${r.comb.toFixed(1)}</td>
-        `;
+          <td>${r.comb.toFixed(1)}</td>`;
         tbody.appendChild(tr);
       });
-
-      document.getElementById("out").style.display = "block";
+      document.getElementById("out").style.display="block";
     }
   });
 };
-
-// keep PWA installable
-if ("serviceWorker" in navigator){
-  window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
-  });
-}
 </script>
 </body>
 </html>
