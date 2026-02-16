@@ -18,7 +18,6 @@
   --text:#f2f2f7;
   --muted:rgba(242,242,247,.72);
   --line:rgba(255,255,255,.10);
-  --accent:#6a00ff;
   --shadow:0 18px 60px rgba(0,0,0,.55);
   --radius:18px;
 }
@@ -80,7 +79,7 @@ input,select{
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
 thead th{
   position:sticky;top:0;background:#10101a;border-bottom:1px solid var(--line);
-  padding:12px;font-size:14px
+  padding:12px;font-size:14px;white-space:nowrap
 }
 tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .player{font-weight:800;font-size:18px}
@@ -89,6 +88,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
   cursor:pointer;font-weight:700
 }
+.small{font-size:12px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 
@@ -99,108 +99,168 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <div class="panel">
 
 <div class="row">
-<div>
-<div class="label">CSV file</div>
-<input id="file" type="file" accept=".csv,text/csv">
-</div>
+  <div>
+    <div class="label">CSV file</div>
+    <input id="file" type="file" accept=".csv,text/csv">
+  </div>
 
-<div>
-<div class="label">Tour</div>
-<select id="tour">
-<option value="PRO">ATP / Challenger</option>
-<option value="WTA">WTA</option>
-</select>
-</div>
+  <div>
+    <div class="label">Tour</div>
+    <select id="tour">
+      <option value="PRO">ATP / Challenger</option>
+      <option value="WTA">WTA</option>
+    </select>
+  </div>
 
-<div>
-<div class="label">Min odds</div>
-<input id="minOdds" type="number" step="0.01" value="1.15">
-</div>
+  <div>
+    <div class="label">Service hold ≥</div>
+    <select id="holdMin"></select>
+    <div class="small" id="holdHint"></div>
+  </div>
 
-<div>
-<div class="label">Max odds</div>
-<input id="maxOdds" type="number" step="0.01" value="1.70">
-</div>
+  <div>
+    <div class="label">Min odds</div>
+    <input id="minOdds" type="number" step="0.01" value="1.15">
+  </div>
 
-<div>
-<div class="label">Combined ≥</div>
-<input id="minCombined" type="number" step="0.1" value="100">
-</div>
+  <div>
+    <div class="label">Max odds</div>
+    <input id="maxOdds" type="number" step="0.01" value="1.70">
+  </div>
 
-<button class="btn" id="run">Run Filter</button>
+  <div>
+    <div class="label">Combined ≥</div>
+    <input id="minCombined" type="number" step="0.1" value="100">
+  </div>
+
+  <button class="btn" id="run">Run Filter</button>
 </div>
 
 <div id="out" class="table-wrap" style="display:none">
-<div class="scroller">
-<table>
-<thead id="thead"></thead>
-<tbody id="tbody"></tbody>
-</table>
-</div>
+  <div class="scroller">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
 </div>
 
 </div>
 </div>
 
 <script>
-const HOLD_THRESH={PRO:78,WTA:66};
+const fileEl = document.getElementById("file");
+const tourEl = document.getElementById("tour");
+const holdMinEl = document.getElementById("holdMin");
+const holdHintEl = document.getElementById("holdHint");
+const minOddsEl = document.getElementById("minOdds");
+const maxOddsEl = document.getElementById("maxOdds");
+const minCombinedEl = document.getElementById("minCombined");
 
-const fileEl=document.getElementById("file");
-const tourEl=document.getElementById("tour");
-const minOddsEl=document.getElementById("minOdds");
-const maxOddsEl=document.getElementById("maxOdds");
-const minCombinedEl=document.getElementById("minCombined");
+const HOLD_PRESETS = {
+  PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
+  WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
+};
 
-function num(x){return parseFloat(String(x).replace("%",""))}
+function rebuildHoldDropdown(){
+  const key = tourEl.value;
+  const preset = HOLD_PRESETS[key];
+
+  holdMinEl.innerHTML = "";
+  preset.values.forEach(v=>{
+    const opt = document.createElement("option");
+    opt.value = String(v);
+    opt.textContent = `${v}%`;
+    holdMinEl.appendChild(opt);
+  });
+
+  holdMinEl.value = String(preset.def);
+  holdHintEl.textContent = preset.label + " (default selected)";
+}
+
+tourEl.addEventListener("change", rebuildHoldDropdown);
+rebuildHoldDropdown();
+
+function num(x){
+  return parseFloat(String(x ?? "").trim().replace("%","").replace(",","."));
+}
 
 function extract(row){
-return{
-player:row.Player||row.player||"",
-odds:num(row.Odds),
-hold:num(row["SH %"]),
-opp:num(row["OpH %"])
-};
+  const player = row.Player ?? row.player ?? row.Name ?? row.name ?? "";
+  const odds = num(row.Odds ?? row.odds ?? row.Price ?? row.price);
+  const hold = num(row["SH %"] ?? row["SH%"] ?? row.Hold ?? row["Hold%"] ?? row["Hold %"]);
+  const opp  = num(row["OpH %"] ?? row["OpH%"] ?? row["Opponent hold"] ?? row["Opponent Hold"] ?? row["Opponent Hold %"]);
+  return { player: String(player).trim(), odds, hold, opp };
 }
 
 function filter(data){
-const holdMin=HOLD_THRESH[tourEl.value];
-const minOdds=num(minOddsEl.value);
-const maxOdds=num(maxOddsEl.value);
-const minComb=num(minCombinedEl.value);
+  const holdMin = num(holdMinEl.value);
+  const minOdds = num(minOddsEl.value);
+  const maxOdds = num(maxOddsEl.value);
+  const minComb = num(minCombinedEl.value);
 
-return data.map(extract).filter(r=>{
-if(!r.player)return false;
-if(r.odds<minOdds||r.odds>maxOdds)return false;
-if(r.hold<holdMin)return false;
-const brk=100-r.opp;
-return (r.hold+brk)>=minComb;
-});
+  return data.map(extract).filter(r=>{
+    if(!r.player) return false;
+    if(!Number.isFinite(r.odds)) return false;
+    if(Number.isFinite(minOdds) && r.odds < minOdds) return false;
+    if(Number.isFinite(maxOdds) && r.odds > maxOdds) return false;
+
+    if(!Number.isFinite(r.hold)) return false;
+    if(r.hold < holdMin) return false;
+
+    if(!Number.isFinite(r.opp)) return false;
+    const brk = 100 - r.opp;
+    const comb = r.hold + brk;
+
+    if(Number.isFinite(minComb) && comb < minComb) return false;
+    return true;
+  }).map(r=>{
+    const brk = 100 - r.opp;
+    const comb = r.hold + brk;
+    return { ...r, brk, comb };
+  }).sort((a,b)=> (b.comb-a.comb) || (b.hold-a.hold) || a.player.localeCompare(b.player));
 }
 
-document.getElementById("run").onclick=()=>{
-Papa.parse(fileEl.files[0],{
-header:true,
-complete:(res)=>{
-const rows=filter(res.data);
-const thead=document.getElementById("thead");
-const tbody=document.getElementById("tbody");
-thead.innerHTML="<tr><th>Player</th><th></th><th>Odds</th><th>Hold</th><th>Break</th><th>Combined</th></tr>";
-tbody.innerHTML="";
-rows.forEach(r=>{
-const brk=100-r.opp;
-const tr=document.createElement("tr");
-tr.innerHTML=`
-<td class="player">${r.player}</td>
-<td><span class="pill" onclick="navigator.clipboard.writeText('${r.player}')">⚡</span></td>
-<td>${r.odds.toFixed(2)}</td>
-<td>${r.hold.toFixed(1)}</td>
-<td>${brk.toFixed(1)}</td>
-<td>${(r.hold+brk).toFixed(1)}</td>`;
-tbody.appendChild(tr);
-});
-document.getElementById("out").style.display="block";
-}});
+document.getElementById("run").onclick = ()=>{
+  const f = fileEl.files && fileEl.files[0];
+  if(!f) return;
+
+  Papa.parse(f,{
+    header:true,
+    skipEmptyLines:true,
+    complete:(res)=>{
+      const rows = filter(res.data || []);
+      const thead = document.getElementById("thead");
+      const tbody = document.getElementById("tbody");
+
+      thead.innerHTML = "<tr><th>Player</th><th></th><th>Odds</th><th>Hold</th><th>Break</th><th>Combined</th></tr>";
+      tbody.innerHTML = "";
+
+      rows.forEach(r=>{
+        const tr = document.createElement("tr");
+        const safeName = r.player.replace(/'/g, "\\'");
+        tr.innerHTML = `
+          <td class="player">${r.player}</td>
+          <td><span class="pill" onclick="navigator.clipboard.writeText('${safeName}')">⚡</span></td>
+          <td>${r.odds.toFixed(2)}</td>
+          <td>${r.hold.toFixed(1)}</td>
+          <td>${r.brk.toFixed(1)}</td>
+          <td>${r.comb.toFixed(1)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("out").style.display = "block";
+    }
+  });
 };
+
+// keep PWA installable
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
