@@ -91,6 +91,17 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 }
 .small{font-size:12px;color:var(--muted);margin-top:6px}
 .right{text-align:right}
+
+.match-row{
+  background:rgba(255,255,255,.03);
+  font-weight:800;
+}
+.match-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
 </style>
 </head>
 
@@ -121,16 +132,6 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   </div>
 
   <div>
-    <div class="label">Min odds</div>
-    <input id="minOdds" type="number" step="0.01" value="1.15">
-  </div>
-
-  <div>
-    <div class="label">Max odds</div>
-    <input id="maxOdds" type="number" step="0.01" value="1.70">
-  </div>
-
-  <div>
     <div class="label">Pred Combined ≥</div>
     <input id="minCombined" type="number" step="0.1" value="100">
   </div>
@@ -138,7 +139,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   <button class="btn" id="run">Run Filter</button>
 
   <div class="small">
-    Uses couplets: rows 1–2, 3–4, 5–6… to compute matchup Pred Hold from SPW/RPW.
+    Rows are read in couplets (1–2, 3–4, …). Odds filters removed. If either player passes thresholds, both are shown.
   </div>
 </div>
 
@@ -165,8 +166,6 @@ const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
 const holdMinEl=document.getElementById("holdMin");
 const holdHintEl=document.getElementById("holdHint");
-const minOddsEl=document.getElementById("minOdds");
-const maxOddsEl=document.getElementById("maxOdds");
 const minCombinedEl=document.getElementById("minCombined");
 
 function rebuildHoldDropdown(){
@@ -215,7 +214,6 @@ function pick(row, names){
 
 function extract(row){
   const player = pick(row, ["Player","player","Name","name"]);
-  const odds = pick(row, ["Odds","odds","Price","price"]);
   const spw  = pick(row, ["SPW %","SPW%","SPW"]);
   const rpw  = pick(row, ["RPW %","RPW%","RPW"]);
   // fallback raw SH/OpH if SPW/RPW missing
@@ -223,7 +221,6 @@ function extract(row){
   const oph  = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
   return {
     player: String(player??"").trim(),
-    odds: num(odds),
     spw: num(spw),
     rpw: num(rpw),
     sh: num(sh),
@@ -232,121 +229,94 @@ function extract(row){
   };
 }
 
-/* ------------------ core: build matchup predicted holds from couplets ------------------ */
-function buildMatchupRows(parsedRows){
+/* Build matchup predicted holds from couplets */
+function buildMatches(parsedRows){
   const rows = parsedRows.map(extract);
+  const matches = [];
 
-  const out = [];
   for(let i=0;i<rows.length;i+=2){
     const a = rows[i];
-    const b = rows[i+1]; // may be undefined if odd count
+    const b = rows[i+1];
 
-    if(!b){
-      // no opponent row: fallback to SH/OpH if possible
-      const predHold = Number.isFinite(a.spw) && Number.isFinite(a.rpw)
-        ? decToPct(holdFromPointP(pctToDec(a.spw))) // weak fallback: assumes rpw opponent avg; better than NaN
-        : (Number.isFinite(a.sh) ? a.sh : NaN);
-      const oppHold = Number.isFinite(a.oph) ? a.oph : NaN;
-      const predBreak = Number.isFinite(oppHold) ? 100 - oppHold : NaN;
-      const predCombined = (Number.isFinite(predHold) && Number.isFinite(predBreak)) ? predHold + predBreak : NaN;
-
-      out.push({
-        ...a,
-        opponent: "",
-        predHold, predBreak, predCombined
+    if(!a || !a.player) continue;
+    if(!b || !b.player) {
+      // orphan row: still show as a single if it passes fallback thresholds
+      matches.push({
+        a: computeFallback(a),
+        b: null,
+        idx: i
       });
       continue;
     }
 
-    const usable = Number.isFinite(a.spw) && Number.isFinite(a.rpw) && Number.isFinite(b.spw) && Number.isFinite(b.rpw);
+    const computed = computeMatchup(a,b);
+    matches.push({ ...computed, idx: i });
+  }
+  return matches;
+}
 
-    if(usable){
-      // matchup point win on serve
-      const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
-      const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
+function computeMatchup(a,b){
+  const usable = Number.isFinite(a.spw) && Number.isFinite(a.rpw) && Number.isFinite(b.spw) && Number.isFinite(b.rpw);
 
-      const holdA = decToPct(holdFromPointP(pServeA));
-      const holdB = decToPct(holdFromPointP(pServeB));
+  if(usable){
+    const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
+    const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
+    const holdA = decToPct(holdFromPointP(pServeA));
+    const holdB = decToPct(holdFromPointP(pServeB));
 
-      // break% is 1 - opponent hold
-      const breakA = 100 - holdB;
-      const breakB = 100 - holdA;
+    const breakA = 100 - holdB;
+    const breakB = 100 - holdA;
 
-      out.push({
-        ...a,
-        opponent: b.player,
-        predHold: holdA,
-        predBreak: breakA,
-        predCombined: holdA + breakA
-      });
-      out.push({
-        ...b,
-        opponent: a.player,
-        predHold: holdB,
-        predBreak: breakB,
-        predCombined: holdB + breakB
-      });
-    } else {
-      // fallback: use existing SH/OpH columns if matchup stats missing
-      const aHold = Number.isFinite(a.sh) ? a.sh : NaN;
-      const bHold = Number.isFinite(b.sh) ? b.sh : NaN;
-
-      const aBreak = Number.isFinite(bHold) ? 100 - bHold : (Number.isFinite(a.oph) ? 100 - a.oph : NaN);
-      const bBreak = Number.isFinite(aHold) ? 100 - aHold : (Number.isFinite(b.oph) ? 100 - b.oph : NaN);
-
-      out.push({
-        ...a,
-        opponent: b.player,
-        predHold: aHold,
-        predBreak: aBreak,
-        predCombined: (Number.isFinite(aHold) && Number.isFinite(aBreak)) ? aHold + aBreak : NaN
-      });
-      out.push({
-        ...b,
-        opponent: a.player,
-        predHold: bHold,
-        predBreak: bBreak,
-        predCombined: (Number.isFinite(bHold) && Number.isFinite(bBreak)) ? bHold + bBreak : NaN
-      });
-    }
+    return {
+      a: { ...a, opponent: b.player, predHold: holdA, predBreak: breakA, predCombined: holdA + breakA, pServe: pServeA },
+      b: { ...b, opponent: a.player, predHold: holdB, predBreak: breakB, predCombined: holdB + breakB, pServe: pServeB }
+    };
   }
 
-  return out;
+  // fallback: use SH and opponent hold if present
+  return {
+    a: computeFallback(a, b),
+    b: computeFallback(b, a)
+  };
 }
 
-/* ------------------ filtering + render ------------------ */
-function filterRows(allRows){
+function computeFallback(x, opp){
+  const hold = Number.isFinite(x.sh) ? x.sh : NaN;
+
+  let oppHold = NaN;
+  if(opp && Number.isFinite(opp.sh)) oppHold = opp.sh;
+  else if(Number.isFinite(x.oph)) oppHold = x.oph;
+
+  const brk = Number.isFinite(oppHold) ? 100 - oppHold : NaN;
+  const comb = (Number.isFinite(hold) && Number.isFinite(brk)) ? hold + brk : NaN;
+
+  return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb, pServe: NaN };
+}
+
+/* Filter by MATCH: if either player passes thresholds, show BOTH */
+function matchPasses(m){
   const holdMin = num(holdMinEl.value);
-  const minOdds = num(minOddsEl.value);
-  const maxOdds = num(maxOddsEl.value);
   const minComb = num(minCombinedEl.value);
 
-  return allRows.filter(r=>{
-    if(!r.player) return false;
-    if(!Number.isFinite(r.odds)) return false;
-    if(Number.isFinite(minOdds) && r.odds < minOdds) return false;
-    if(Number.isFinite(maxOdds) && r.odds > maxOdds) return false;
-
-    if(!Number.isFinite(r.predHold)) return false;
-    if(r.predHold < holdMin) return false;
-
-    if(!Number.isFinite(r.predCombined)) return false;
-    if(Number.isFinite(minComb) && r.predCombined < minComb) return false;
-
+  const passSide = (s)=>{
+    if(!s) return false;
+    if(!Number.isFinite(s.predHold) || !Number.isFinite(s.predCombined)) return false;
+    if(s.predHold < holdMin) return false;
+    if(s.predCombined < minComb) return false;
     return true;
-  });
+  };
+
+  return passSide(m.a) || passSide(m.b);
 }
 
-function render(rows){
+function render(matches){
   const thead=document.getElementById("thead");
   const tbody=document.getElementById("tbody");
 
   thead.innerHTML = `
     <tr>
-      <th>Player</th>
+      <th>Match</th>
       <th></th>
-      <th>Opponent</th>
-      <th class="right">Odds</th>
       <th class="right">Pred Hold</th>
       <th class="right">Pred Break</th>
       <th class="right">Pred Combined</th>
@@ -355,24 +325,31 @@ function render(rows){
     </tr>`;
   tbody.innerHTML="";
 
-  rows.forEach(r=>{
-    const safeName = r.player.replace(/'/g, "\\'");
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>
-        <div class="player">${r.player}</div>
-        ${r.opponent ? `<div class="muted">vs ${r.opponent}</div>` : ``}
-      </td>
-      <td><span class="pill" onclick="navigator.clipboard.writeText('${safeName}')">⚡</span></td>
-      <td>${r.opponent || ""}</td>
-      <td class="right">${Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""}</td>
-      <td class="right">${Number.isFinite(r.predHold) ? r.predHold.toFixed(1) : ""}</td>
-      <td class="right">${Number.isFinite(r.predBreak) ? r.predBreak.toFixed(1) : ""}</td>
-      <td class="right">${Number.isFinite(r.predCombined) ? r.predCombined.toFixed(1) : ""}</td>
-      <td class="right">${Number.isFinite(r.spw) ? r.spw.toFixed(1) : ""}</td>
-      <td class="right">${Number.isFinite(r.rpw) ? r.rpw.toFixed(1) : ""}</td>
-    `;
-    tbody.appendChild(tr);
+  matches.forEach(m=>{
+    const title = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
+    const trH = document.createElement("tr");
+    trH.className = "match-row";
+    trH.innerHTML = `<td colspan="7"><div class="match-title">${title}</div></td>`;
+    tbody.appendChild(trH);
+
+    [m.a, m.b].forEach(s=>{
+      if(!s) return;
+      const safeName = s.player.replace(/'/g, "\\'");
+      const tr=document.createElement("tr");
+      tr.innerHTML = `
+        <td>
+          <div class="player">${s.player}</div>
+          ${s.opponent ? `<div class="muted">vs ${s.opponent}</div>` : ``}
+        </td>
+        <td><span class="pill" onclick="navigator.clipboard.writeText('${safeName}')">⚡</span></td>
+        <td class="right">${Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.predBreak) ? s.predBreak.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.predCombined) ? s.predCombined.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.spw) ? s.spw.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.rpw) ? s.rpw.toFixed(1) : ""}</td>
+      `;
+      tbody.appendChild(tr);
+    });
   });
 
   document.getElementById("out").style.display="block";
@@ -386,9 +363,9 @@ document.getElementById("run").onclick=()=>{
     header:true,
     skipEmptyLines:true,
     complete:(res)=>{
-      const all = buildMatchupRows(res.data || []);
-      const filtered = filterRows(all);
-      render(filtered);
+      const matches = buildMatches(res.data || []);
+      const filteredMatches = matches.filter(matchPasses);
+      render(filteredMatches);
     }
   });
 };
@@ -402,3 +379,4 @@ if ("serviceWorker" in navigator){
 </script>
 </body>
 </html>
+```0
