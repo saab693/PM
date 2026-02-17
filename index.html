@@ -36,14 +36,13 @@ body{
 .wrap{max-width:980px;margin:0 auto}
 h1{margin:18px 0 14px;font-size:56px;font-weight:800}
 
-.panel, .card{
+.panel,.card{
   background:var(--card);
   border:1px solid var(--line);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
   padding:14px;
 }
-
 .card{margin:0 0 14px;}
 
 .row{display:grid;gap:12px;grid-template-columns:1fr}
@@ -67,7 +66,7 @@ input,select{
   background:linear-gradient(180deg,#6a00ff,#5300c7);
   border:none;
   color:white;
-  font-weight:900;
+  font-weight:950;
   padding:14px;
   border-radius:16px;
   font-size:18px;
@@ -85,6 +84,9 @@ input,select{
   color:rgba(242,242,247,.92);
 }
 
+.small{font-size:12px;color:var(--muted);margin-top:6px}
+.right{text-align:right}
+
 .table-wrap{
   margin-top:14px;
   border-radius:var(--radius);
@@ -99,12 +101,16 @@ thead th{
   padding:12px;font-size:14px;white-space:nowrap
 }
 tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
-.player{font-weight:900;font-size:18px}
+.player{font-weight:950;font-size:18px}
 .muted{color:var(--muted);font-size:12px;margin-top:2px}
+
+.match-row{background:rgba(255,255,255,.03); font-weight:950}
+.match-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.match-actions{display:flex;gap:8px;flex-wrap:wrap}
 
 .pill{
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
-  cursor:pointer;font-weight:900
+  cursor:pointer;font-weight:950
 }
 .pill.small{padding:7px 10px;font-size:13px}
 .pill.add{
@@ -115,19 +121,9 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.10);
 }
-.small{font-size:12px;color:var(--muted);margin-top:6px}
-.right{text-align:right}
-
-.match-row{background:rgba(255,255,255,.03); font-weight:900}
-.match-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.match-actions{display:flex;gap:8px;flex-wrap:wrap}
 
 .card-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin-bottom:10px;
+  display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;
 }
 .card h2{
   margin:0;
@@ -136,7 +132,6 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   text-transform:uppercase;
   color:rgba(242,242,247,.85);
 }
-
 .list{display:grid;gap:10px}
 .item{
   border:1px solid rgba(255,255,255,.10);
@@ -153,23 +148,38 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 .item .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 
 .toast{
-  position:fixed;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%);
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
   background:rgba(20,20,28,.92);
   border:1px solid rgba(255,255,255,.12);
   color:rgba(242,242,247,.95);
-  padding:10px 12px;
-  border-radius:12px;
+  padding:10px 12px; border-radius:12px;
   box-shadow:0 16px 50px rgba(0,0,0,.6);
   font-weight:950;
-  opacity:0;
-  pointer-events:none;
+  opacity:0; pointer-events:none;
   transition:opacity .18s ease, transform .18s ease;
   z-index:9999;
 }
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px);}
+
+#debugBox{
+  margin:0 0 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
+  padding:10px 12px;
+  font-size:12px;
+  color:rgba(242,242,247,.88);
+  white-space:pre-wrap;
+  display:none;
+}
+#debugBox.bad{
+  display:block;
+  border-color:rgba(255,80,80,.35);
+  background:rgba(255,80,80,.12);
+}
+#debugBox.good{
+  display:block;
+}
 </style>
 </head>
 
@@ -177,13 +187,15 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <div class="wrap">
   <h1>PM Filter</h1>
 
+  <!-- In-app debug -->
+  <div id="debugBox" class="good"></div>
+
   <!-- Today List -->
-  <div class="card" id="todayCard">
+  <div class="card">
     <div class="card-head">
       <h2>Today’s List</h2>
       <button class="btn secondary" id="toggleToday" style="width:auto;padding:10px 12px;border-radius:12px;font-size:14px;">Hide</button>
     </div>
-
     <div id="todayBody">
       <div class="row grid2" style="margin-bottom:10px;">
         <button class="btn secondary" id="exportToday">Export Today (CSV)</button>
@@ -211,8 +223,28 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 
       <div>
         <div class="label">Predicted hold ≥ (SPW/RPW matchup)</div>
-        <select id="holdMin"></select>
-        <div class="small" id="holdHint"></div>
+        <!-- Pre-populated so it works even if JS crashes -->
+        <select id="holdMin">
+          <option value="66">66%</option>
+          <option value="67">67%</option>
+          <option value="68">68%</option>
+          <option value="69">69%</option>
+          <option value="70">70%</option>
+          <option value="71">71%</option>
+          <option value="72">72%</option>
+          <option value="73">73%</option>
+          <option value="74">74%</option>
+          <option value="75">75%</option>
+          <option value="78" selected>78%</option>
+          <option value="79">79%</option>
+          <option value="80">80%</option>
+          <option value="81">81%</option>
+          <option value="82">82%</option>
+          <option value="83">83%</option>
+          <option value="84">84%</option>
+          <option value="85">85%</option>
+        </select>
+        <div class="small" id="holdHint">If this dropdown won’t open, JS has crashed (see debug box).</div>
       </div>
 
       <div>
@@ -244,15 +276,29 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <div class="toast" id="toast"></div>
 
 <script>
-/* ------------------ presets ------------------ */
+/* ---------- debug + error capture ---------- */
+const debugBox = document.getElementById("debugBox");
+function dbg(msg, bad=false){
+  debugBox.className = bad ? "bad" : "good";
+  debugBox.style.display = "block";
+  debugBox.textContent += (debugBox.textContent ? "\n" : "") + msg;
+}
+window.addEventListener("error", (e)=>{
+  dbg("JS ERROR: " + (e.message || "unknown") + (e.filename ? ("\n" + e.filename + ":" + e.lineno) : ""), true);
+});
+window.addEventListener("unhandledrejection", (e)=>{
+  dbg("PROMISE ERROR: " + (e.reason?.message || String(e.reason || "unknown")), true);
+});
+
+dbg("JS loaded.");
+
+/* ---------- app ---------- */
 const HOLD_PRESETS = {
   PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
 };
-
 const LS_KEY = "pm_today_list_v1";
 
-/* ------------------ elements ------------------ */
 const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
 const holdMinEl=document.getElementById("holdMin");
@@ -267,14 +313,11 @@ const todayHintEl=document.getElementById("todayHint");
 const todayListEl=document.getElementById("todayList");
 const toggleTodayBtn=document.getElementById("toggleToday");
 const todayBody=document.getElementById("todayBody");
-
 const toast=document.getElementById("toast");
 
-/* ------------------ state ------------------ */
 let LAST_RENDERED_MATCHES=[];
 let TODAY=loadToday();
 
-/* ------------------ toast ------------------ */
 let toastTimer=null;
 function showToast(msg){
   toast.textContent=msg;
@@ -283,23 +326,26 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove("show"), 1100);
 }
 
-/* ------------------ dropdown ------------------ */
 function rebuildHoldDropdown(){
   const preset=HOLD_PRESETS[tourEl.value];
   holdMinEl.innerHTML="";
   preset.values.forEach(v=>{
     const opt=document.createElement("option");
-    opt.value=v;
+    opt.value=String(v);
     opt.textContent=v+"%";
     holdMinEl.appendChild(opt);
   });
   holdMinEl.value=String(preset.def);
   holdHintEl.textContent=preset.label;
+  dbg("Hold dropdown built for: " + tourEl.value);
 }
-tourEl.addEventListener("change",rebuildHoldDropdown);
+tourEl.addEventListener("change", rebuildHoldDropdown);
 rebuildHoldDropdown();
 
-/* ------------------ helpers ------------------ */
+fileEl.addEventListener("change", ()=>{
+  dbg("File selected: " + (fileEl.files?.[0]?.name || "none"));
+});
+
 function num(x){ return parseFloat(String(x??"").replace("%","").replace(",",".").trim()); }
 const pctToDec = p => p/100;
 const decToPct = d => d*100;
@@ -327,7 +373,6 @@ function extract(row){
   const oph = pick(row,["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
   return { player:String(player??"").trim(), spw:num(spw), rpw:num(rpw), sh:num(sh), oph:num(oph) };
 }
-
 function computeFallback(x, opp){
   const hold = Number.isFinite(x.sh) ? x.sh : NaN;
   let oppHold = NaN;
@@ -337,7 +382,6 @@ function computeFallback(x, opp){
   const comb = (Number.isFinite(hold) && Number.isFinite(brk)) ? hold+brk : NaN;
   return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb };
 }
-
 function computeMatchup(a,b){
   const usable = Number.isFinite(a.spw)&&Number.isFinite(a.rpw)&&Number.isFinite(b.spw)&&Number.isFinite(b.rpw);
   if(usable){
@@ -352,7 +396,6 @@ function computeMatchup(a,b){
   }
   return { a:computeFallback(a,b), b:computeFallback(b,a) };
 }
-
 function buildMatches(data){
   const rows = (data||[]).map(extract);
   const matches=[];
@@ -364,7 +407,6 @@ function buildMatches(data){
   }
   return matches;
 }
-
 function matchPasses(m){
   const holdMin=num(holdMinEl.value);
   const minComb=num(minCombinedEl.value);
@@ -372,18 +414,12 @@ function matchPasses(m){
   return pass(m.a) || pass(m.b);
 }
 
-/* ------------------ UI helpers ------------------ */
 function escapeHtml(s){
   return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
 async function copyText(text){
   try{ await navigator.clipboard.writeText(text); showToast("Copied"); }
-  catch(e){
-    const ta=document.createElement("textarea");
-    ta.value=text; document.body.appendChild(ta); ta.select();
-    document.execCommand("copy"); document.body.removeChild(ta);
-    showToast("Copied");
-  }
+  catch(e){ showToast("Copy failed"); }
 }
 function todayKeyForMatch(m){
   const p1=m.a?.player||"", p2=m.b?.player||"";
@@ -391,7 +427,7 @@ function todayKeyForMatch(m){
 }
 function matchTitle(m){ return m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`; }
 
-/* ------------------ Today list ------------------ */
+/* Today list */
 function loadToday(){
   try{
     const raw=localStorage.getItem(LS_KEY);
@@ -400,7 +436,6 @@ function loadToday(){
   }catch(e){ return []; }
 }
 function saveToday(){ localStorage.setItem(LS_KEY, JSON.stringify(TODAY)); }
-
 function simplifySide(s){
   return {
     player:s.player, opponent:s.opponent||"",
@@ -415,9 +450,7 @@ function addToToday(m){
   const key=todayKeyForMatch(m);
   if(TODAY.some(x=>x.key===key)){ showToast("Already added"); return; }
   TODAY.unshift({
-    key,
-    tour:tourEl.value,
-    addedAt:new Date().toISOString(),
+    key, tour:tourEl.value, addedAt:new Date().toISOString(),
     title:matchTitle(m),
     a:simplifySide(m.a),
     b:m.b?simplifySide(m.b):null
@@ -436,7 +469,6 @@ function clearToday(){
   TODAY=[]; saveToday(); renderToday(); showToast("Cleared");
 }
 function fmt(v){ return (v===null||v===undefined)?"—":String(v); }
-
 function renderToday(){
   todayListEl.innerHTML="";
   if(!TODAY.length){
@@ -444,11 +476,9 @@ function renderToday(){
     return;
   }
   todayHintEl.textContent=`${TODAY.length} match${TODAY.length===1?"":"es"} saved.`;
-
   TODAY.forEach(item=>{
     const div=document.createElement("div");
     div.className="item";
-
     const left=document.createElement("div");
     const tourLabel=item.tour==="WTA"?"WTA":"ATP/CH";
     const metaA=item.a?`A: H ${fmt(item.a.predHold)} · B ${fmt(item.a.predBreak)} · C ${fmt(item.a.predCombined)}`:"";
@@ -458,16 +488,13 @@ function renderToday(){
       <div class="meta">${tourLabel} · ${new Date(item.addedAt).toLocaleString()}</div>
       <div class="meta">${escapeHtml(metaA)}${metaB?`<br/>${escapeHtml(metaB)}`:""}</div>
     `;
-
     const actions=document.createElement("div");
     actions.className="actions";
     actions.innerHTML=`
       <span class="pill small" data-copy="${encodeURIComponent(item.title)}">⚡ Copy</span>
       <span class="pill small remove" data-remove="${encodeURIComponent(item.key)}">Remove</span>
     `;
-
-    div.appendChild(left);
-    div.appendChild(actions);
+    div.appendChild(left); div.appendChild(actions);
     todayListEl.appendChild(div);
   });
 
@@ -479,11 +506,10 @@ function renderToday(){
   });
 }
 
-/* ------------------ render results ------------------ */
+/* Results render */
 function render(matches){
   const thead=document.getElementById("thead");
   const tbody=document.getElementById("tbody");
-
   thead.innerHTML = `
     <tr>
       <th>Match</th><th></th>
@@ -546,7 +572,7 @@ function render(matches){
   document.getElementById("out").style.display="block";
 }
 
-/* ------------------ export ------------------ */
+/* export */
 function downloadCSV(rows, filename){
   if(!rows.length){ showToast("Nothing to export"); return; }
   const headers=Object.keys(rows[0]);
@@ -566,51 +592,4 @@ function downloadCSV(rows, filename){
 function toExportRows(matches){
   const rows=[];
   matches.forEach(m=>{
-    const title=matchTitle(m);
-    [m.a,m.b].forEach(s=>{
-      if(!s) return;
-      rows.push({
-        Match:title, Player:s.player, Opponent:s.opponent||"",
-        "Pred Hold":Number.isFinite(s.predHold)?s.predHold.toFixed(1):"",
-        "Pred Break":Number.isFinite(s.predBreak)?s.predBreak.toFixed(1):"",
-        "Pred Combined":Number.isFinite(s.predCombined)?s.predCombined.toFixed(1):"",
-        "SPW %":Number.isFinite(s.spw)?s.spw.toFixed(1):"",
-        "RPW %":Number.isFinite(s.rpw)?s.rpw.toFixed(1):""
-      });
-    });
-  });
-  return rows;
-}
-
-/* ------------------ buttons ------------------ */
-runBtn.addEventListener("click", ()=>{
-  const f=fileEl.files && fileEl.files[0];
-  if(!f){
-    showToast("Choose a CSV first");
-    return;
-  }
-
-  Papa.parse(f,{
-    header:true,
-    skipEmptyLines:true,
-    complete:(res)=>{
-      const matches=buildMatches(res.data||[]);
-      const filtered=matches.filter(matchPasses);
-      LAST_RENDERED_MATCHES=filtered;
-      render(filtered);
-      showToast(filtered.length ? "Done" : "No matches");
-    }
-  });
-});
-
-exportBtn.addEventListener("click", ()=>{
-  if(!LAST_RENDERED_MATCHES.length){
-    showToast("Run filter first");
-    return;
-  }
-  const stamp=new Date().toISOString().slice(0,10).replace(/-/g,"");
-  const tour = tourEl.value==="WTA"?"WTA":"ATP_CH";
-  downloadCSV(toExportRows(LAST_RENDERED_MATCHES), `PM_results_${tour}_${stamp}.csv`);
-});
-
-exportTodayBtn.addEventList
+    cons
