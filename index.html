@@ -34,7 +34,11 @@ body{
   padding:18px 14px 28px;
 }
 .wrap{max-width:980px;margin:0 auto}
-h1{margin:18px 0 14px;font-size:56px;font-weight:800}
+.header{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+h1{margin:18px 0 14px;font-size:56px;font-weight:800; line-height:1}
+.top-actions{display:flex; gap:10px; align-items:center}
 
 .panel{
   background:var(--card);
@@ -77,6 +81,12 @@ input,select{
   color:rgba(242,242,247,.92);
   box-shadow:none;
 }
+.btn.small{
+  width:auto;
+  padding:10px 12px;
+  font-size:14px;
+  border-radius:12px;
+}
 
 .table-wrap{
   margin-top:14px;
@@ -99,11 +109,16 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
   cursor:pointer;font-weight:900
 }
+.pill.small{padding:7px 10px;font-size:13px}
 .small{font-size:12px;color:var(--muted);margin-top:6px}
 .right{text-align:right}
 
 .match-row{background:rgba(255,255,255,.03); font-weight:900}
-.match-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.match-title{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+}
+.match-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+
 .toast{
   position:fixed;
   left:50%;
@@ -122,60 +137,143 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   z-index:9999;
 }
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px);}
+
+/* Modal */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:9998;
+}
+.modal{
+  width:min(920px, 100%);
+  max-height:80vh;
+  overflow:auto;
+  background:rgba(20,20,28,.98);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:18px;
+  box-shadow:0 22px 70px rgba(0,0,0,.75);
+  padding:14px;
+}
+.modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+.modal-title{
+  font-weight:950;
+  font-size:16px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:rgba(242,242,247,.90);
+}
+.list{
+  display:grid;
+  gap:10px;
+}
+.item{
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.04);
+  border-radius:16px;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.item .title{font-weight:950;font-size:16px}
+.item .meta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.3}
+.item .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+hr.sep{border:none;border-top:1px solid rgba(255,255,255,.10);margin:12px 0}
 </style>
 </head>
 
 <body>
 <div class="wrap">
-<h1>PM Filter</h1>
-
-<div class="panel">
-
-<div class="row">
-  <div>
-    <div class="label">CSV file</div>
-    <input id="file" type="file" accept=".csv,text/csv">
+  <div class="header">
+    <h1>PM Filter</h1>
+    <div class="top-actions">
+      <button class="btn secondary small" id="todayBtn">Today (0)</button>
+    </div>
   </div>
 
-  <div>
-    <div class="label">Tour</div>
-    <select id="tour">
-      <option value="PRO">ATP / Challenger</option>
-      <option value="WTA">WTA</option>
-    </select>
-  </div>
+  <div class="panel">
 
-  <div>
-    <div class="label">Predicted hold ≥ (SPW/RPW matchup)</div>
-    <select id="holdMin"></select>
-    <div class="small" id="holdHint"></div>
-  </div>
+    <div class="row">
+      <div>
+        <div class="label">CSV file</div>
+        <input id="file" type="file" accept=".csv,text/csv">
+      </div>
 
-  <div>
-    <div class="label">Pred Combined ≥</div>
-    <input id="minCombined" type="number" step="0.1" value="100">
-  </div>
+      <div>
+        <div class="label">Tour</div>
+        <select id="tour">
+          <option value="PRO">ATP / Challenger</option>
+          <option value="WTA">WTA</option>
+        </select>
+      </div>
 
-  <div class="row grid2">
-    <button class="btn" id="run">Run Filter</button>
-    <button class="btn secondary" id="export" disabled>Export Results (CSV)</button>
-  </div>
+      <div>
+        <div class="label">Predicted hold ≥ (SPW/RPW matchup)</div>
+        <select id="holdMin"></select>
+        <div class="small" id="holdHint"></div>
+      </div>
 
-  <div class="small">
-    Rows are read in couplets. Odds ignored. If either player passes thresholds, both are shown.
+      <div>
+        <div class="label">Pred Combined ≥</div>
+        <input id="minCombined" type="number" step="0.1" value="100">
+      </div>
+
+      <div class="row grid2">
+        <button class="btn" id="run">Run Filter</button>
+        <button class="btn secondary" id="export" disabled>Export Results (CSV)</button>
+      </div>
+
+      <div class="small">
+        Rows are read in couplets. Odds ignored. If either player passes thresholds, both are shown.
+      </div>
+    </div>
+
+    <div id="out" class="table-wrap" style="display:none">
+      <div class="scroller">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<div id="out" class="table-wrap" style="display:none">
-  <div class="scroller">
-    <table>
-      <thead id="thead"></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-</div>
+<!-- Today modal -->
+<div class="modal-backdrop" id="todayModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div class="modal-title">Today’s List</div>
+      <button class="btn secondary small" id="closeToday">Close</button>
+    </div>
 
-</div>
+    <div class="row grid2">
+      <button class="btn secondary" id="exportToday">Export Today (CSV)</button>
+      <button class="btn secondary" id="copyToday">Copy Today</button>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <button class="btn secondary" id="clearToday">Clear Today</button>
+      <div class="small" id="todayHint">Nothing added yet.</div>
+    </div>
+
+    <hr class="sep"/>
+
+    <div class="list" id="todayList"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -187,6 +285,8 @@ const HOLD_PRESETS = {
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
 };
 
+const LS_KEY = "pm_today_matches_v1";
+
 const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
 const holdMinEl=document.getElementById("holdMin");
@@ -195,8 +295,19 @@ const minCombinedEl=document.getElementById("minCombined");
 const exportBtn=document.getElementById("export");
 const toast=document.getElementById("toast");
 
-let LAST_RENDERED_MATCHES = [];
+const todayBtn = document.getElementById("todayBtn");
+const todayModal = document.getElementById("todayModal");
+const closeToday = document.getElementById("closeToday");
+const todayListEl = document.getElementById("todayList");
+const todayHintEl = document.getElementById("todayHint");
+const exportTodayBtn = document.getElementById("exportToday");
+const copyTodayBtn = document.getElementById("copyToday");
+const clearTodayBtn = document.getElementById("clearToday");
 
+let LAST_RENDERED_MATCHES = [];
+let TODAY = loadToday(); // array of {key,title,tour,addedAt,a,b}
+
+/* ------------------ toast ------------------ */
 let toastTimer=null;
 function showToast(msg){
   toast.textContent=msg;
@@ -205,6 +316,7 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove("show"), 900);
 }
 
+/* ------------------ hold dropdown ------------------ */
 function rebuildHoldDropdown(){
   const preset=HOLD_PRESETS[tourEl.value];
   holdMinEl.innerHTML="";
@@ -346,6 +458,168 @@ async function copyText(text){
   }
 }
 
+function escapeHtml(s){
+  return String(s??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+/* ------------------ TODAY LIST ------------------ */
+function keyForMatch(m){
+  const p1 = m.a?.player || "";
+  const p2 = m.b?.player || "";
+  return (p1 && p2 ? [p1,p2].sort().join("___") : p1).toLowerCase();
+}
+function titleForMatch(m){
+  return m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
+}
+function simplifySide(s){
+  if(!s) return null;
+  return {
+    player: s.player,
+    opponent: s.opponent || "",
+    predHold: Number.isFinite(s.predHold) ? +s.predHold.toFixed(1) : null,
+    predBreak: Number.isFinite(s.predBreak) ? +s.predBreak.toFixed(1) : null,
+    predCombined: Number.isFinite(s.predCombined) ? +s.predCombined.toFixed(1) : null,
+    spw: Number.isFinite(s.spw) ? +s.spw.toFixed(1) : null,
+    rpw: Number.isFinite(s.rpw) ? +s.rpw.toFixed(1) : null
+  };
+}
+function loadToday(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){
+    return [];
+  }
+}
+function saveToday(){
+  localStorage.setItem(LS_KEY, JSON.stringify(TODAY));
+  updateTodayBadge();
+}
+function updateTodayBadge(){
+  todayBtn.textContent = `Today (${TODAY.length})`;
+}
+
+function addToToday(m){
+  const key = keyForMatch(m);
+  if(TODAY.some(x => x.key === key)){
+    showToast("Already added");
+    return;
+  }
+  TODAY.unshift({
+    key,
+    title: titleForMatch(m),
+    tour: tourEl.value === "WTA" ? "WTA" : "ATP/CH",
+    addedAt: new Date().toISOString(),
+    a: simplifySide(m.a),
+    b: simplifySide(m.b)
+  });
+  saveToday();
+  showToast("Added");
+}
+
+function removeFromToday(key){
+  TODAY = TODAY.filter(x => x.key !== key);
+  saveToday();
+  renderToday();
+  showToast("Removed");
+}
+
+function clearToday(){
+  TODAY = [];
+  saveToday();
+  renderToday();
+  showToast("Cleared");
+}
+
+function renderToday(){
+  todayListEl.innerHTML = "";
+  if(!TODAY.length){
+    todayHintEl.textContent = "Nothing added yet.";
+    return;
+  }
+  todayHintEl.textContent = `${TODAY.length} match${TODAY.length===1?"":"es"} saved.`;
+
+  TODAY.forEach(item=>{
+    const div = document.createElement("div");
+    div.className = "item";
+
+    const left = document.createElement("div");
+    const metaA = item.a ? `A: H ${fmt(item.a.predHold)} · B ${fmt(item.a.predBreak)} · C ${fmt(item.a.predCombined)}` : "";
+    const metaB = item.b ? `B: H ${fmt(item.b.predHold)} · B ${fmt(item.b.predBreak)} · C ${fmt(item.b.predCombined)}` : "";
+    left.innerHTML = `
+      <div class="title">${escapeHtml(item.title)}</div>
+      <div class="meta">${escapeHtml(item.tour)} · ${new Date(item.addedAt).toLocaleString()}</div>
+      <div class="meta">${escapeHtml(metaA)}${metaB ? "<br/>"+escapeHtml(metaB) : ""}</div>
+    `;
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    actions.innerHTML = `
+      <span class="pill small" data-copy="${encodeURIComponent(item.title)}">⚡ Copy</span>
+      <span class="pill small remove" data-remove="${encodeURIComponent(item.key)}">Remove</span>
+    `;
+
+    div.appendChild(left);
+    div.appendChild(actions);
+    todayListEl.appendChild(div);
+  });
+
+  todayListEl.querySelectorAll("[data-copy]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const t = decodeURIComponent(el.getAttribute("data-copy")||"");
+      copyText(t);
+    });
+  });
+  todayListEl.querySelectorAll("[data-remove]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const k = decodeURIComponent(el.getAttribute("data-remove")||"");
+      removeFromToday(k);
+    });
+  });
+}
+
+function fmt(v){ return (v===null || v===undefined) ? "—" : String(v); }
+
+/* Export Today */
+function exportTodayCSV(){
+  if(!TODAY.length){ showToast("Today is empty"); return; }
+  const rows = [];
+  TODAY.forEach(item=>{
+    const matchName = item.title;
+    [item.a, item.b].forEach(s=>{
+      if(!s) return;
+      rows.push({
+        Match: matchName,
+        Tour: item.tour,
+        Player: s.player,
+        Opponent: s.opponent || "",
+        "Pred Hold": s.predHold ?? "",
+        "Pred Break": s.predBreak ?? "",
+        "Pred Combined": s.predCombined ?? "",
+        "SPW %": s.spw ?? "",
+        "RPW %": s.rpw ?? "",
+        AddedAt: item.addedAt
+      });
+    });
+  });
+  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
+  downloadCSV(rows, `PM_today_${stamp}.csv`);
+}
+
+/* Copy Today (newline list) */
+function copyTodayList(){
+  if(!TODAY.length){ showToast("Today is empty"); return; }
+  const lines = TODAY.map(x => x.title);
+  copyText(lines.join("\n"));
+}
+
+/* ------------------ main render ------------------ */
 function render(matches){
   const thead=document.getElementById("thead");
   const tbody=document.getElementById("tbody");
@@ -362,11 +636,23 @@ function render(matches){
     </tr>`;
   tbody.innerHTML="";
 
-  matches.forEach(m=>{
-    const title = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
+  matches.forEach((m, idx)=>{
+    const title = titleForMatch(m);
+    const key = keyForMatch(m);
+    const already = TODAY.some(x => x.key === key);
+
     const trH = document.createElement("tr");
     trH.className = "match-row";
-    trH.innerHTML = `<td colspan="7"><div class="match-title">${title}</div></td>`;
+    trH.innerHTML = `
+      <td colspan="7">
+        <div class="match-title">
+          <span>${escapeHtml(title)}</span>
+          <span class="match-actions">
+            <span class="pill small" data-add="${idx}" style="${already ? "opacity:.55" : ""}">${already ? "Added ✓" : "Add"}</span>
+            <span class="pill small" data-copytitle="${encodeURIComponent(title)}">⚡ Copy</span>
+          </span>
+        </div>
+      </td>`;
     tbody.appendChild(trH);
 
     [m.a, m.b].forEach(s=>{
@@ -374,8 +660,8 @@ function render(matches){
       const tr=document.createElement("tr");
       tr.innerHTML = `
         <td>
-          <div class="player">${s.player}</div>
-          ${s.opponent ? `<div class="muted">vs ${s.opponent}</div>` : ``}
+          <div class="player">${escapeHtml(s.player)}</div>
+          ${s.opponent ? `<div class="muted">vs ${escapeHtml(s.opponent)}</div>` : ``}
         </td>
         <td><span class="pill" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
         <td class="right">${Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : ""}</td>
@@ -388,6 +674,7 @@ function render(matches){
     });
   });
 
+  // Copy player
   tbody.querySelectorAll("[data-copy]").forEach(el=>{
     el.addEventListener("click", ()=>{
       const name = decodeURIComponent(el.getAttribute("data-copy") || "");
@@ -395,95 +682,7 @@ function render(matches){
     });
   });
 
-  document.getElementById("out").style.display="block";
-}
-
-/* ------------------ export ------------------ */
-function toExportRows(matches){
-  const rows = [];
-  matches.forEach(m=>{
-    const matchName = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
-    [m.a, m.b].forEach(s=>{
-      if(!s) return;
-      rows.push({
-        Match: matchName,
-        Player: s.player,
-        Opponent: s.opponent || "",
-        "Pred Hold": Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : "",
-        "Pred Break": Number.isFinite(s.predBreak) ? s.predBreak.toFixed(1) : "",
-        "Pred Combined": Number.isFinite(s.predCombined) ? s.predCombined.toFixed(1) : "",
-        "SPW %": Number.isFinite(s.spw) ? s.spw.toFixed(1) : "",
-        "RPW %": Number.isFinite(s.rpw) ? s.rpw.toFixed(1) : ""
-      });
-    });
-  });
-  return rows;
-}
-
-function downloadCSV(rows, filename){
-  if(!rows.length){ showToast("Nothing to export"); return; }
-  const headers = Object.keys(rows[0]);
-  const escapeCell = (v)=>{
-    const s = String(v ?? "");
-    if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
-    return s;
-  };
-  const lines = [];
-  lines.push(headers.map(escapeCell).join(","));
-  rows.forEach(r=>{
-    lines.push(headers.map(h=>escapeCell(r[h])).join(","));
-  });
-  const csv = lines.join("\n");
-  const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-document.getElementById("export").addEventListener("click", ()=>{
-  if(!LAST_RENDERED_MATCHES.length){ showToast("Run filter first"); return; }
-  const tour = tourEl.value === "WTA" ? "WTA" : "ATP_CH";
-  const holdMin = holdMinEl.value;
-  const comb = minCombinedEl.value;
-  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
-  downloadCSV(toExportRows(LAST_RENDERED_MATCHES), `PM_results_${tour}_H${holdMin}_C${comb}_${stamp}.csv`);
-});
-
-/* ------------------ run ------------------ */
-document.getElementById("run").onclick=()=>{
-  const f = fileEl.files && fileEl.files[0];
-  if(!f){ showToast("Choose a CSV"); return; }
-
-  Papa.parse(f,{
-    header:true,
-    skipEmptyLines:true,
-    complete:(res)=>{
-      const matches = buildMatches(res.data || []);
-      const filteredMatches = matches.filter(matchPasses);
-
-      LAST_RENDERED_MATCHES = filteredMatches;
-      exportBtn.disabled = filteredMatches.length === 0;
-
-      render(filteredMatches);
-      showToast(filteredMatches.length ? "Done" : "No matches");
-    },
-    error: ()=>{
-      showToast("Parse failed");
-    }
-  });
-};
-
-// keep PWA installable
-if ("serviceWorker" in navigator){
-  window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
-  });
-}
-</script>
-</body>
-</html>
+  // Copy match title
+  tbody.querySelectorAll("[data-copytitle]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+    
