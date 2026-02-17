@@ -9,6 +9,8 @@
 <meta name="theme-color" content="#6a00ff">
 <link rel="icon" href="PM_icon.png">
 
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
 <style>
 :root{
   --bg:#090a12;
@@ -34,14 +36,13 @@ body{
 .wrap{max-width:980px;margin:0 auto}
 h1{margin:18px 0 14px;font-size:56px;font-weight:800}
 
-.panel,.card{
+.panel{
   background:var(--card);
   border:1px solid var(--line);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
   padding:14px;
 }
-.card{margin:0 0 14px;}
 
 .row{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:860px){
@@ -64,7 +65,7 @@ input,select{
   background:linear-gradient(180deg,#6a00ff,#5300c7);
   border:none;
   color:white;
-  font-weight:950;
+  font-weight:900;
   padding:14px;
   border-radius:16px;
   font-size:18px;
@@ -76,14 +77,6 @@ input,select{
   color:rgba(242,242,247,.92);
   box-shadow:none;
 }
-.btn.danger{
-  background:rgba(255,60,60,.14);
-  border:1px solid rgba(255,60,60,.25);
-  color:rgba(242,242,247,.92);
-}
-
-.small{font-size:12px;color:var(--muted);margin-top:6px}
-.right{text-align:right}
 
 .table-wrap{
   margin-top:14px;
@@ -99,59 +92,32 @@ thead th{
   padding:12px;font-size:14px;white-space:nowrap
 }
 tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
-.player{font-weight:950;font-size:18px}
+.player{font-weight:900;font-size:18px}
 .muted{color:var(--muted);font-size:12px;margin-top:2px}
-
-.match-row{background:rgba(255,255,255,.03); font-weight:950}
-.match-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.match-actions{display:flex;gap:8px;flex-wrap:wrap}
 
 .pill{
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
-  cursor:pointer;font-weight:950
+  cursor:pointer;font-weight:900
 }
-.pill.small{padding:7px 10px;font-size:13px}
-.pill.add{
-  background:rgba(106,0,255,.18);
-  border:1px solid rgba(106,0,255,.25);
-}
-.pill.remove{
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.10);
-}
+.small{font-size:12px;color:var(--muted);margin-top:6px}
+.right{text-align:right}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
-.card h2{
-  margin:0;
-  font-size:14px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  color:rgba(242,242,247,.85);
-}
-.list{display:grid;gap:10px}
-.item{
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(255,255,255,.04);
-  border-radius:16px;
-  padding:12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
-}
-.item .title{font-weight:950;font-size:16px}
-.item .meta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.3}
-.item .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-
+.match-row{background:rgba(255,255,255,.03); font-weight:900}
+.match-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .toast{
-  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
   background:rgba(20,20,28,.92);
   border:1px solid rgba(255,255,255,.12);
   color:rgba(242,242,247,.95);
-  padding:10px 12px;border-radius:12px;
+  padding:10px 12px;
+  border-radius:12px;
   box-shadow:0 16px 50px rgba(0,0,0,.6);
-  font-weight:950;
-  opacity:0;pointer-events:none;
+  font-weight:900;
+  opacity:0;
+  pointer-events:none;
   transition:opacity .18s ease, transform .18s ease;
   z-index:9999;
 }
@@ -161,362 +127,233 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 
 <body>
 <div class="wrap">
-  <h1>PM Filter</h1>
+<h1>PM Filter</h1>
 
-  <div class="card">
-    <div class="card-head">
-      <h2>Today’s List</h2>
-      <button class="btn secondary" id="toggleToday" style="width:auto;padding:10px 12px;border-radius:12px;font-size:14px;">Hide</button>
-    </div>
-    <div id="todayBody">
-      <div class="row grid2" style="margin-bottom:10px;">
-        <button class="btn secondary" id="exportToday">Export Today (CSV)</button>
-        <button class="btn danger" id="clearToday">Clear Today</button>
-      </div>
-      <div class="small" id="todayHint">Nothing added yet.</div>
-      <div class="list" id="todayList"></div>
-    </div>
+<div class="panel">
+
+<div class="row">
+  <div>
+    <div class="label">CSV file</div>
+    <input id="file" type="file" accept=".csv,text/csv">
   </div>
 
-  <div class="panel">
-    <div class="row">
-      <div>
-        <div class="label">CSV file</div>
-        <input id="file" type="file" accept=".csv,text/csv">
-      </div>
-
-      <div>
-        <div class="label">Tour</div>
-        <select id="tour">
-          <option value="PRO">ATP / Challenger</option>
-          <option value="WTA">WTA</option>
-        </select>
-      </div>
-
-      <div>
-        <div class="label">Predicted hold ≥ (SPW/RPW matchup)</div>
-        <select id="holdMin"></select>
-        <div class="small" id="holdHint"></div>
-      </div>
-
-      <div>
-        <div class="label">Pred Combined ≥</div>
-        <input id="minCombined" type="number" step="0.1" value="100">
-      </div>
-
-      <div class="row grid2">
-        <button class="btn" id="run">Run Filter</button>
-        <button class="btn secondary" id="export">Export Results (CSV)</button>
-      </div>
-
-      <div class="small">
-        Rows are read in couplets (1–2, 3–4, …). Odds ignored. If either player passes thresholds, both are shown.
-      </div>
-    </div>
-
-    <div id="out" class="table-wrap" style="display:none">
-      <div class="scroller">
-        <table>
-          <thead id="thead"></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-    </div>
+  <div>
+    <div class="label">Tour</div>
+    <select id="tour">
+      <option value="PRO">ATP / Challenger</option>
+      <option value="WTA">WTA</option>
+    </select>
   </div>
+
+  <div>
+    <div class="label">Predicted hold ≥ (SPW/RPW matchup)</div>
+    <select id="holdMin"></select>
+    <div class="small" id="holdHint"></div>
+  </div>
+
+  <div>
+    <div class="label">Pred Combined ≥</div>
+    <input id="minCombined" type="number" step="0.1" value="100">
+  </div>
+
+  <div class="row grid2">
+    <button class="btn" id="run">Run Filter</button>
+    <button class="btn secondary" id="export" disabled>Export Results (CSV)</button>
+  </div>
+
+  <div class="small">
+    Rows are read in couplets. Odds ignored. If either player passes thresholds, both are shown.
+  </div>
+</div>
+
+<div id="out" class="table-wrap" style="display:none">
+  <div class="scroller">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ---------------- settings ---------------- */
+/* ------------------ presets ------------------ */
 const HOLD_PRESETS = {
   PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
 };
-const LS_KEY = "pm_today_list_v1";
 
-/* ---------------- elements ---------------- */
 const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
 const holdMinEl=document.getElementById("holdMin");
 const holdHintEl=document.getElementById("holdHint");
 const minCombinedEl=document.getElementById("minCombined");
-const runBtn=document.getElementById("run");
 const exportBtn=document.getElementById("export");
-
-const exportTodayBtn=document.getElementById("exportToday");
-const clearTodayBtn=document.getElementById("clearToday");
-const todayHintEl=document.getElementById("todayHint");
-const todayListEl=document.getElementById("todayList");
-const toggleTodayBtn=document.getElementById("toggleToday");
-const todayBody=document.getElementById("todayBody");
-
 const toast=document.getElementById("toast");
 
-/* ---------------- state ---------------- */
-let LAST_RENDERED_MATCHES=[];
-let TODAY=loadToday();
+let LAST_RENDERED_MATCHES = [];
 
-/* ---------------- toast ---------------- */
 let toastTimer=null;
 function showToast(msg){
   toast.textContent=msg;
   toast.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>toast.classList.remove("show"), 1100);
+  toastTimer=setTimeout(()=>toast.classList.remove("show"), 900);
 }
 
-/* ---------------- dropdown ---------------- */
 function rebuildHoldDropdown(){
   const preset=HOLD_PRESETS[tourEl.value];
   holdMinEl.innerHTML="";
   preset.values.forEach(v=>{
     const opt=document.createElement("option");
-    opt.value=String(v);
+    opt.value=v;
     opt.textContent=v+"%";
     holdMinEl.appendChild(opt);
   });
-  holdMinEl.value=String(preset.def);
+  holdMinEl.value=preset.def;
   holdHintEl.textContent=preset.label;
 }
 tourEl.addEventListener("change",rebuildHoldDropdown);
 rebuildHoldDropdown();
 
-/* ---------------- CSV parser (no external libs) ---------------- */
-/* Supports commas, quotes, newlines in quoted fields. */
-function parseCSV(text){
-  const rows=[];
-  let row=[], field="", inQuotes=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(inQuotes){
-      if(c === '"'){
-        if(text[i+1] === '"'){ field+='"'; i++; }
-        else inQuotes=false;
-      }else{
-        field+=c;
-      }
-    }else{
-      if(c === '"'){ inQuotes=true; }
-      else if(c === ','){ row.push(field); field=""; }
-      else if(c === '\r'){ /* ignore */ }
-      else if(c === '\n'){
-        row.push(field); field="";
-        // skip empty trailing line
-        if(row.length>1 || (row.length===1 && row[0].trim()!=="")) rows.push(row);
-        row=[];
-      }else{
-        field+=c;
-      }
-    }
-  }
-  // last row
-  if(field.length || row.length){
-    row.push(field);
-    if(row.length>1 || (row.length===1 && row[0].trim()!=="")) rows.push(row);
-  }
-  if(!rows.length) return [];
-  const headers = rows[0].map(h=>h.trim());
-  const out=[];
-  for(let r=1;r<rows.length;r++){
-    const obj={};
-    for(let c=0;c<headers.length;c++){
-      obj[headers[c]] = rows[r][c] ?? "";
-    }
-    out.push(obj);
-  }
-  return out;
+/* ------------------ helpers ------------------ */
+function num(x){
+  return parseFloat(String(x??"").replace("%","").replace(",",".").trim());
 }
-
-function readFileAsText(file){
-  return new Promise((resolve,reject)=>{
-    const fr=new FileReader();
-    fr.onload=()=>resolve(String(fr.result||""));
-    fr.onerror=()=>reject(fr.error || new Error("File read failed"));
-    fr.readAsText(file);
-  });
-}
-
-/* ---------------- helpers ---------------- */
-function num(x){ return parseFloat(String(x??"").replace("%","").replace(",",".").trim()); }
 const pctToDec = p => p/100;
 const decToPct = d => d*100;
 
+// Markov hold prob from point win prob on serve p
 function holdFromPointP(p){
   if(!(p>0 && p<1)) return NaN;
-  const q=1-p;
+  const q = 1 - p;
   const first = Math.pow(p,4) * (1 + 4*q + 10*q*q);
   const deuceReach = 20 * Math.pow(p,3) * Math.pow(q,3);
   const pWinFromDeuce = (p*p) / (1 - 2*p*q);
   return first + deuceReach * pWinFromDeuce;
 }
+
+// pServe(A vs B) = average of A's SPW and (1 - B's RPW)
 function matchupPointServe(spwA_dec, rpwB_dec){
   return (spwA_dec + (1 - rpwB_dec)) / 2;
 }
-function pick(row,names){
-  for(const n of names){ if(row[n]!==undefined) return row[n]; }
+
+function pick(row, names){
+  for(const n of names){
+    if(row[n] !== undefined) return row[n];
+  }
   return undefined;
 }
+
 function extract(row){
-  const player = pick(row,["Player","player","Name","name"]);
-  const spw = pick(row,["SPW %","SPW%","SPW"]);
-  const rpw = pick(row,["RPW %","RPW%","RPW"]);
-  const sh  = pick(row,["SH %","SH%","Hold","Hold%","Hold %"]);
-  const oph = pick(row,["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
-  return { player:String(player??"").trim(), spw:num(spw), rpw:num(rpw), sh:num(sh), oph:num(oph) };
+  const player = pick(row, ["Player","player","Name","name"]);
+  const spw  = pick(row, ["SPW %","SPW%","SPW"]);
+  const rpw  = pick(row, ["RPW %","RPW%","RPW"]);
+  // fallback raw SH/OpH if SPW/RPW missing
+  const sh   = pick(row, ["SH %","SH%","Hold","Hold%","Hold %"]);
+  const oph  = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
+  return {
+    player: String(player??"").trim(),
+    spw: num(spw),
+    rpw: num(rpw),
+    sh: num(sh),
+    oph: num(oph),
+    raw: row
+  };
 }
 
-function computeFallback(x, opp){
-  const hold = Number.isFinite(x.sh) ? x.sh : NaN;
-  let oppHold = NaN;
-  if(opp && Number.isFinite(opp.sh)) oppHold = opp.sh;
-  else if(Number.isFinite(x.oph)) oppHold = x.oph;
-  const brk = Number.isFinite(oppHold) ? 100-oppHold : NaN;
-  const comb = (Number.isFinite(hold) && Number.isFinite(brk)) ? hold+brk : NaN;
-  return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb };
+/* Build matchup predicted holds from couplets */
+function buildMatches(parsedRows){
+  const rows = parsedRows.map(extract);
+  const matches = [];
+
+  for(let i=0;i<rows.length;i+=2){
+    const a = rows[i];
+    const b = rows[i+1];
+
+    if(!a || !a.player) continue;
+    if(!b || !b.player) {
+      matches.push({ a: computeFallback(a), b: null, idx: i });
+      continue;
+    }
+
+    const computed = computeMatchup(a,b);
+    matches.push({ ...computed, idx: i });
+  }
+  return matches;
 }
 
 function computeMatchup(a,b){
-  const usable = Number.isFinite(a.spw)&&Number.isFinite(a.rpw)&&Number.isFinite(b.spw)&&Number.isFinite(b.rpw);
+  const usable = Number.isFinite(a.spw) && Number.isFinite(a.rpw) && Number.isFinite(b.spw) && Number.isFinite(b.rpw);
+
   if(usable){
     const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
     const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
     const holdA = decToPct(holdFromPointP(pServeA));
     const holdB = decToPct(holdFromPointP(pServeB));
+
+    const breakA = 100 - holdB;
+    const breakB = 100 - holdA;
+
     return {
-      a:{...a, opponent:b.player, predHold:holdA, predBreak:100-holdB, predCombined:holdA+(100-holdB)},
-      b:{...b, opponent:a.player, predHold:holdB, predBreak:100-holdA, predCombined:holdB+(100-holdA)}
+      a: { ...a, opponent: b.player, predHold: holdA, predBreak: breakA, predCombined: holdA + breakA },
+      b: { ...b, opponent: a.player, predHold: holdB, predBreak: breakB, predCombined: holdB + breakB }
     };
   }
-  return { a:computeFallback(a,b), b:computeFallback(b,a) };
+
+  return { a: computeFallback(a, b), b: computeFallback(b, a) };
 }
 
-function buildMatches(data){
-  const rows = (data||[]).map(extract);
-  const matches=[];
-  for(let i=0;i<rows.length;i+=2){
-    const a=rows[i], b=rows[i+1];
-    if(!a || !a.player) continue;
-    if(!b || !b.player){ matches.push({a:computeFallback(a,null), b:null}); continue; }
-    matches.push(computeMatchup(a,b));
-  }
-  return matches;
+function computeFallback(x, opp){
+  const hold = Number.isFinite(x.sh) ? x.sh : NaN;
+
+  let oppHold = NaN;
+  if(opp && Number.isFinite(opp.sh)) oppHold = opp.sh;
+  else if(Number.isFinite(x.oph)) oppHold = x.oph;
+
+  const brk = Number.isFinite(oppHold) ? 100 - oppHold : NaN;
+  const comb = (Number.isFinite(hold) && Number.isFinite(brk)) ? hold + brk : NaN;
+
+  return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb };
 }
 
+/* Filter by MATCH: if either player passes thresholds, show BOTH */
 function matchPasses(m){
-  const holdMin=num(holdMinEl.value);
-  const minComb=num(minCombinedEl.value);
-  const pass=(s)=> s && Number.isFinite(s.predHold) && Number.isFinite(s.predCombined) && s.predHold>=holdMin && s.predCombined>=minComb;
-  return pass(m.a) || pass(m.b);
-}
+  const holdMin = num(holdMinEl.value);
+  const minComb = num(minCombinedEl.value);
 
-/* ---------------- UI helpers ---------------- */
-function escapeHtml(s){
-  return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-}
-async function copyText(text){
-  try{ await navigator.clipboard.writeText(text); showToast("Copied"); }
-  catch(e){ showToast("Copy failed"); }
-}
-function todayKeyForMatch(m){
-  const p1=m.a?.player||"", p2=m.b?.player||"";
-  return (p1&&p2 ? [p1,p2].sort().join("___") : p1).toLowerCase();
-}
-function matchTitle(m){ return m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`; }
-
-/* ---------------- Today list ---------------- */
-function loadToday(){
-  try{
-    const raw=localStorage.getItem(LS_KEY);
-    const arr=raw?JSON.parse(raw):[];
-    return Array.isArray(arr)?arr:[];
-  }catch(e){ return []; }
-}
-function saveToday(){ localStorage.setItem(LS_KEY, JSON.stringify(TODAY)); }
-
-function simplifySide(s){
-  return {
-    player:s.player, opponent:s.opponent||"",
-    predHold:Number.isFinite(s.predHold)?+s.predHold.toFixed(1):null,
-    predBreak:Number.isFinite(s.predBreak)?+s.predBreak.toFixed(1):null,
-    predCombined:Number.isFinite(s.predCombined)?+s.predCombined.toFixed(1):null,
-    spw:Number.isFinite(s.spw)?+s.spw.toFixed(1):null,
-    rpw:Number.isFinite(s.rpw)?+s.rpw.toFixed(1):null
+  const passSide = (s)=>{
+    if(!s) return false;
+    if(!Number.isFinite(s.predHold) || !Number.isFinite(s.predCombined)) return false;
+    if(s.predHold < holdMin) return false;
+    if(s.predCombined < minComb) return false;
+    return true;
   };
-}
-function addToToday(m){
-  const key=todayKeyForMatch(m);
-  if(TODAY.some(x=>x.key===key)){ showToast("Already added"); return; }
-  TODAY.unshift({
-    key, tour:tourEl.value, addedAt:new Date().toISOString(),
-    title:matchTitle(m),
-    a:simplifySide(m.a),
-    b:m.b?simplifySide(m.b):null
-  });
-  saveToday();
-  renderToday();
-  showToast("Added");
-}
-function removeFromToday(key){
-  TODAY=TODAY.filter(x=>x.key!==key);
-  saveToday();
-  renderToday();
-  showToast("Removed");
-}
-function clearToday(){
-  TODAY=[]; saveToday(); renderToday(); showToast("Cleared");
-}
-function fmt(v){ return (v===null||v===undefined)?"—":String(v); }
 
-function renderToday(){
-  todayListEl.innerHTML="";
-  if(!TODAY.length){
-    todayHintEl.textContent="Nothing added yet.";
-    return;
+  return passSide(m.a) || passSide(m.b);
+}
+
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast("Copied");
+  }catch(e){
+    showToast("Copy failed");
   }
-  todayHintEl.textContent=`${TODAY.length} match${TODAY.length===1?"":"es"} saved.`;
-  TODAY.forEach(item=>{
-    const div=document.createElement("div");
-    div.className="item";
-
-    const left=document.createElement("div");
-    const tourLabel=item.tour==="WTA"?"WTA":"ATP/CH";
-    const metaA=item.a?`A: H ${fmt(item.a.predHold)} · B ${fmt(item.a.predBreak)} · C ${fmt(item.a.predCombined)}`:"";
-    const metaB=item.b?`B: H ${fmt(item.b.predHold)} · B ${fmt(item.b.predBreak)} · C ${fmt(item.b.predCombined)}`:"";
-    left.innerHTML=`
-      <div class="title">${escapeHtml(item.title)}</div>
-      <div class="meta">${tourLabel} · ${new Date(item.addedAt).toLocaleString()}</div>
-      <div class="meta">${escapeHtml(metaA)}${metaB?`<br/>${escapeHtml(metaB)}`:""}</div>
-    `;
-
-    const actions=document.createElement("div");
-    actions.className="actions";
-    actions.innerHTML=`
-      <span class="pill small" data-copy="${encodeURIComponent(item.title)}">⚡ Copy</span>
-      <span class="pill small remove" data-remove="${encodeURIComponent(item.key)}">Remove</span>
-    `;
-
-    div.appendChild(left);
-    div.appendChild(actions);
-    todayListEl.appendChild(div);
-  });
-
-  todayListEl.querySelectorAll("[data-copy]").forEach(el=>{
-    el.addEventListener("click", ()=>copyText(decodeURIComponent(el.getAttribute("data-copy")||"")));
-  });
-  todayListEl.querySelectorAll("[data-remove]").forEach(el=>{
-    el.addEventListener("click", ()=>removeFromToday(decodeURIComponent(el.getAttribute("data-remove")||"")));
-  });
 }
 
-/* ---------------- Results render ---------------- */
 function render(matches){
   const thead=document.getElementById("thead");
   const tbody=document.getElementById("tbody");
 
   thead.innerHTML = `
     <tr>
-      <th>Match</th><th></th>
+      <th>Match</th>
+      <th></th>
       <th class="right">Pred Hold</th>
       <th class="right">Pred Break</th>
       <th class="right">Pred Combined</th>
@@ -525,82 +362,128 @@ function render(matches){
     </tr>`;
   tbody.innerHTML="";
 
-  matches.forEach((m, idx)=>{
-    const title=matchTitle(m);
-    const key=todayKeyForMatch(m);
-    const already=TODAY.some(x=>x.key===key);
-
-    const trH=document.createElement("tr");
-    trH.className="match-row";
-    trH.innerHTML=`
-      <td colspan="7">
-        <div class="match-title">
-          <span>${escapeHtml(title)}</span>
-          <span class="match-actions">
-            <span class="pill small add" data-add="${idx}" ${already?'style="opacity:.55"':''}>${already?"Added ✓":"Add to Today"}</span>
-            <span class="pill small" data-copytitle="${encodeURIComponent(title)}">⚡ Copy</span>
-          </span>
-        </div>
-      </td>`;
+  matches.forEach(m=>{
+    const title = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
+    const trH = document.createElement("tr");
+    trH.className = "match-row";
+    trH.innerHTML = `<td colspan="7"><div class="match-title">${title}</div></td>`;
     tbody.appendChild(trH);
 
-    [m.a,m.b].forEach(s=>{
+    [m.a, m.b].forEach(s=>{
       if(!s) return;
       const tr=document.createElement("tr");
-      tr.innerHTML=`
-        <td><div class="player">${escapeHtml(s.player)}</div>${s.opponent?`<div class="muted">vs ${escapeHtml(s.opponent)}</div>`:""}</td>
-        <td><span class="pill small" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
-        <td class="right">${Number.isFinite(s.predHold)?s.predHold.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.predBreak)?s.predBreak.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.predCombined)?s.predCombined.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.spw)?s.spw.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.rpw)?s.rpw.toFixed(1):""}</td>
+      tr.innerHTML = `
+        <td>
+          <div class="player">${s.player}</div>
+          ${s.opponent ? `<div class="muted">vs ${s.opponent}</div>` : ``}
+        </td>
+        <td><span class="pill" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
+        <td class="right">${Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.predBreak) ? s.predBreak.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.predCombined) ? s.predCombined.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.spw) ? s.spw.toFixed(1) : ""}</td>
+        <td class="right">${Number.isFinite(s.rpw) ? s.rpw.toFixed(1) : ""}</td>
       `;
       tbody.appendChild(tr);
     });
   });
 
   tbody.querySelectorAll("[data-copy]").forEach(el=>{
-    el.addEventListener("click", ()=>copyText(decodeURIComponent(el.getAttribute("data-copy")||"")));
-  });
-  tbody.querySelectorAll("[data-copytitle]").forEach(el=>{
-    el.addEventListener("click", ()=>copyText(decodeURIComponent(el.getAttribute("data-copytitle")||"")));
-  });
-  tbody.querySelectorAll("[data-add]").forEach(el=>{
     el.addEventListener("click", ()=>{
-      const i=parseInt(el.getAttribute("data-add"),10);
-      if(Number.isFinite(i) && LAST_RENDERED_MATCHES[i]) addToToday(LAST_RENDERED_MATCHES[i]);
+      const name = decodeURIComponent(el.getAttribute("data-copy") || "");
+      copyText(name);
     });
   });
 
   document.getElementById("out").style.display="block";
 }
 
-/* ---------------- export helpers ---------------- */
-function downloadCSV(rows, filename){
-  if(!rows.length){ showToast("Nothing to export"); return; }
-  const headers=Object.keys(rows[0]);
-  const esc=v=>{
-    const s=String(v??"");
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
-  };
-  const lines=[headers.map(esc).join(",")];
-  rows.forEach(r=>lines.push(headers.map(h=>esc(r[h])).join(",")));
-  const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url; a.download=filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
+/* ------------------ export ------------------ */
 function toExportRows(matches){
-  const rows=[];
+  const rows = [];
   matches.forEach(m=>{
-    const title=matchTitle(m);
-    [m.a,m.b].forEach(s=>{
+    const matchName = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
+    [m.a, m.b].forEach(s=>{
       if(!s) return;
       rows.push({
-        Match:title, Player:s.player, Opponent:s.opponent||"",
-        "Pred Hold":Number.isFinite(s.predHold)?s.predHold.toFixed(1):"",
-        "Pred Break":Number.isFinite(s.predBreak)?s.predBreak.toFixed(1):"",
-        "
+        Match: matchName,
+        Player: s.player,
+        Opponent: s.opponent || "",
+        "Pred Hold": Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : "",
+        "Pred Break": Number.isFinite(s.predBreak) ? s.predBreak.toFixed(1) : "",
+        "Pred Combined": Number.isFinite(s.predCombined) ? s.predCombined.toFixed(1) : "",
+        "SPW %": Number.isFinite(s.spw) ? s.spw.toFixed(1) : "",
+        "RPW %": Number.isFinite(s.rpw) ? s.rpw.toFixed(1) : ""
+      });
+    });
+  });
+  return rows;
+}
+
+function downloadCSV(rows, filename){
+  if(!rows.length){ showToast("Nothing to export"); return; }
+  const headers = Object.keys(rows[0]);
+  const escapeCell = (v)=>{
+    const s = String(v ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+    return s;
+  };
+  const lines = [];
+  lines.push(headers.map(escapeCell).join(","));
+  rows.forEach(r=>{
+    lines.push(headers.map(h=>escapeCell(r[h])).join(","));
+  });
+  const csv = lines.join("\n");
+  const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("export").addEventListener("click", ()=>{
+  if(!LAST_RENDERED_MATCHES.length){ showToast("Run filter first"); return; }
+  const tour = tourEl.value === "WTA" ? "WTA" : "ATP_CH";
+  const holdMin = holdMinEl.value;
+  const comb = minCombinedEl.value;
+  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
+  downloadCSV(toExportRows(LAST_RENDERED_MATCHES), `PM_results_${tour}_H${holdMin}_C${comb}_${stamp}.csv`);
+});
+
+/* ------------------ run ------------------ */
+document.getElementById("run").onclick=()=>{
+  const f = fileEl.files && fileEl.files[0];
+  if(!f){ showToast("Choose a CSV"); return; }
+
+  Papa.parse(f,{
+    header:true,
+    skipEmptyLines:true,
+    complete:(res)=>{
+      const matches = buildMatches(res.data || []);
+      const filteredMatches = matches.filter(matchPasses);
+
+      LAST_RENDERED_MATCHES = filteredMatches;
+      exportBtn.disabled = filteredMatches.length === 0;
+
+      render(filteredMatches);
+      showToast(filteredMatches.length ? "Done" : "No matches");
+    },
+    error: ()=>{
+      showToast("Parse failed");
+    }
+  });
+};
+
+// keep PWA installable
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
