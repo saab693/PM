@@ -25,9 +25,10 @@
 body{
   margin:0;
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  background:radial-gradient(900px 500px at 20% -10%, rgba(106,0,255,.25), transparent 55%),
-             radial-gradient(900px 500px at 90% 0%, rgba(106,0,255,.18), transparent 60%),
-             var(--bg);
+  background:
+    radial-gradient(900px 500px at 20% -10%, rgba(106,0,255,.25), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, rgba(106,0,255,.18), transparent 60%),
+    var(--bg);
   color:var(--text);
   min-height:100vh;
   padding:18px 14px 28px;
@@ -36,8 +37,6 @@ body{
 h1{margin:18px 0 14px;font-size:56px;font-weight:800}
 
 .panel, .card{
-  position:relative; /* prevents weird stacking on some mobile browsers */
-  z-index:0;
   background:var(--card);
   border:1px solid var(--line);
   border-radius:var(--radius);
@@ -45,16 +44,13 @@ h1{margin:18px 0 14px;font-size:56px;font-weight:800}
   padding:14px;
 }
 
+.card{margin:0 0 14px;}
+
 .row{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:860px){
   .row.grid2{grid-template-columns:1fr 1fr}
 }
 .label{font-size:12px;color:var(--muted);margin-bottom:6px}
-
-input,select,button{
-  position:relative;
-  z-index:2; /* makes sure controls are on top and tappable */
-}
 
 input,select{
   width:100%;
@@ -71,7 +67,7 @@ input,select{
   background:linear-gradient(180deg,#6a00ff,#5300c7);
   border:none;
   color:white;
-  font-weight:800;
+  font-weight:900;
   padding:14px;
   border-radius:16px;
   font-size:18px;
@@ -88,7 +84,6 @@ input,select{
   border:1px solid rgba(255,60,60,.25);
   color:rgba(242,242,247,.92);
 }
-.btn:disabled{opacity:.45; cursor:not-allowed}
 
 .table-wrap{
   margin-top:14px;
@@ -104,12 +99,12 @@ thead th{
   padding:12px;font-size:14px;white-space:nowrap
 }
 tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
-.player{font-weight:800;font-size:18px}
+.player{font-weight:900;font-size:18px}
 .muted{color:var(--muted);font-size:12px;margin-top:2px}
 
 .pill{
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
-  cursor:pointer;font-weight:800
+  cursor:pointer;font-weight:900
 }
 .pill.small{padding:7px 10px;font-size:13px}
 .pill.add{
@@ -123,18 +118,10 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 .small{font-size:12px;color:var(--muted);margin-top:6px}
 .right{text-align:right}
 
-.match-row{background:rgba(255,255,255,.03); font-weight:800}
+.match-row{background:rgba(255,255,255,.03); font-weight:900}
 .match-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .match-actions{display:flex;gap:8px;flex-wrap:wrap}
 
-.card{margin:0 0 14px;}
-.card h2{
-  margin:0;
-  font-size:14px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  color:rgba(242,242,247,.85);
-}
 .card-head{
   display:flex;
   justify-content:space-between;
@@ -142,6 +129,14 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   gap:10px;
   margin-bottom:10px;
 }
+.card h2{
+  margin:0;
+  font-size:14px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(242,242,247,.85);
+}
+
 .list{display:grid;gap:10px}
 .item{
   border:1px solid rgba(255,255,255,.10);
@@ -153,7 +148,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   align-items:flex-start;
   gap:10px;
 }
-.item .title{font-weight:900;font-size:16px}
+.item .title{font-weight:950;font-size:16px}
 .item .meta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.3}
 .item .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 
@@ -168,7 +163,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   padding:10px 12px;
   border-radius:12px;
   box-shadow:0 16px 50px rgba(0,0,0,.6);
-  font-weight:900;
+  font-weight:950;
   opacity:0;
   pointer-events:none;
   transition:opacity .18s ease, transform .18s ease;
@@ -191,8 +186,8 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 
     <div id="todayBody">
       <div class="row grid2" style="margin-bottom:10px;">
-        <button class="btn secondary" id="exportToday" disabled>Export Today (CSV)</button>
-        <button class="btn danger" id="clearToday" disabled>Clear Today</button>
+        <button class="btn secondary" id="exportToday">Export Today (CSV)</button>
+        <button class="btn danger" id="clearToday">Clear Today</button>
       </div>
       <div class="small" id="todayHint">Nothing added yet.</div>
       <div class="list" id="todayList"></div>
@@ -226,8 +221,8 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
       </div>
 
       <div class="row grid2">
-        <button class="btn" id="run" disabled>Run Filter</button>
-        <button class="btn secondary" id="export" disabled>Export Results (CSV)</button>
+        <button class="btn" id="run">Run Filter</button>
+        <button class="btn secondary" id="export">Export Results (CSV)</button>
       </div>
 
       <div class="small">
@@ -249,14 +244,15 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <div class="toast" id="toast"></div>
 
 <script>
-/* --- core settings --- */
+/* ------------------ presets ------------------ */
 const HOLD_PRESETS = {
   PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
 };
+
 const LS_KEY = "pm_today_list_v1";
 
-/* --- elements --- */
+/* ------------------ elements ------------------ */
 const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
 const holdMinEl=document.getElementById("holdMin");
@@ -274,11 +270,11 @@ const todayBody=document.getElementById("todayBody");
 
 const toast=document.getElementById("toast");
 
-/* --- state --- */
+/* ------------------ state ------------------ */
 let LAST_RENDERED_MATCHES=[];
 let TODAY=loadToday();
 
-/* --- toast --- */
+/* ------------------ toast ------------------ */
 let toastTimer=null;
 function showToast(msg){
   toast.textContent=msg;
@@ -287,7 +283,7 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove("show"), 1100);
 }
 
-/* --- dropdown rebuild --- */
+/* ------------------ dropdown ------------------ */
 function rebuildHoldDropdown(){
   const preset=HOLD_PRESETS[tourEl.value];
   holdMinEl.innerHTML="";
@@ -297,18 +293,13 @@ function rebuildHoldDropdown(){
     opt.textContent=v+"%";
     holdMinEl.appendChild(opt);
   });
-  holdMinEl.value=preset.def;
+  holdMinEl.value=String(preset.def);
   holdHintEl.textContent=preset.label;
 }
 tourEl.addEventListener("change",rebuildHoldDropdown);
 rebuildHoldDropdown();
 
-/* --- enable run when file chosen --- */
-fileEl.addEventListener("change", ()=>{
-  runBtn.disabled = !(fileEl.files && fileEl.files[0]);
-});
-
-/* --- maths helpers --- */
+/* ------------------ helpers ------------------ */
 function num(x){ return parseFloat(String(x??"").replace("%","").replace(",",".").trim()); }
 const pctToDec = p => p/100;
 const decToPct = d => d*100;
@@ -337,7 +328,6 @@ function extract(row){
   return { player:String(player??"").trim(), spw:num(spw), rpw:num(rpw), sh:num(sh), oph:num(oph) };
 }
 
-/* --- compute matchups from couplets --- */
 function computeFallback(x, opp){
   const hold = Number.isFinite(x.sh) ? x.sh : NaN;
   let oppHold = NaN;
@@ -347,6 +337,7 @@ function computeFallback(x, opp){
   const comb = (Number.isFinite(hold) && Number.isFinite(brk)) ? hold+brk : NaN;
   return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb };
 }
+
 function computeMatchup(a,b){
   const usable = Number.isFinite(a.spw)&&Number.isFinite(a.rpw)&&Number.isFinite(b.spw)&&Number.isFinite(b.rpw);
   if(usable){
@@ -361,6 +352,7 @@ function computeMatchup(a,b){
   }
   return { a:computeFallback(a,b), b:computeFallback(b,a) };
 }
+
 function buildMatches(data){
   const rows = (data||[]).map(extract);
   const matches=[];
@@ -372,6 +364,7 @@ function buildMatches(data){
   }
   return matches;
 }
+
 function matchPasses(m){
   const holdMin=num(holdMinEl.value);
   const minComb=num(minCombinedEl.value);
@@ -379,7 +372,7 @@ function matchPasses(m){
   return pass(m.a) || pass(m.b);
 }
 
-/* --- render results --- */
+/* ------------------ UI helpers ------------------ */
 function escapeHtml(s){
   return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
@@ -398,73 +391,7 @@ function todayKeyForMatch(m){
 }
 function matchTitle(m){ return m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`; }
 
-function render(matches){
-  const thead=document.getElementById("thead");
-  const tbody=document.getElementById("tbody");
-  thead.innerHTML = `
-    <tr>
-      <th>Match</th><th></th>
-      <th class="right">Pred Hold</th>
-      <th class="right">Pred Break</th>
-      <th class="right">Pred Combined</th>
-      <th class="right">SPW</th>
-      <th class="right">RPW</th>
-    </tr>`;
-  tbody.innerHTML="";
-
-  matches.forEach((m, idx)=>{
-    const title = matchTitle(m);
-    const key = todayKeyForMatch(m);
-    const already = TODAY.some(x=>x.key===key);
-
-    const trH=document.createElement("tr");
-    trH.className="match-row";
-    trH.innerHTML = `
-      <td colspan="7">
-        <div class="match-title">
-          <span>${escapeHtml(title)}</span>
-          <span class="match-actions">
-            <span class="pill small add" data-add="${idx}" ${already?'style="opacity:.55"':''}>${already?"Added ✓":"Add to Today"}</span>
-            <span class="pill small" data-copytitle="${encodeURIComponent(title)}">⚡ Copy</span>
-          </span>
-        </div>
-      </td>`;
-    tbody.appendChild(trH);
-
-    [m.a, m.b].forEach(s=>{
-      if(!s) return;
-      const tr=document.createElement("tr");
-      tr.innerHTML = `
-        <td><div class="player">${escapeHtml(s.player)}</div>${s.opponent?`<div class="muted">vs ${escapeHtml(s.opponent)}</div>`:""}</td>
-        <td><span class="pill small" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
-        <td class="right">${Number.isFinite(s.predHold)?s.predHold.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.predBreak)?s.predBreak.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.predCombined)?s.predCombined.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.spw)?s.spw.toFixed(1):""}</td>
-        <td class="right">${Number.isFinite(s.rpw)?s.rpw.toFixed(1):""}</td>`;
-      tbody.appendChild(tr);
-    });
-  });
-
-  // wire events
-  tbody.querySelectorAll("[data-copy]").forEach(el=>{
-    el.addEventListener("click", ()=>copyText(decodeURIComponent(el.getAttribute("data-copy")||"")));
-  });
-  tbody.querySelectorAll("[data-copytitle]").forEach(el=>{
-    el.addEventListener("click", ()=>copyText(decodeURIComponent(el.getAttribute("data-copytitle")||"")));
-  });
-  tbody.querySelectorAll("[data-add]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const i=parseInt(el.getAttribute("data-add"),10);
-      if(Number.isFinite(i) && LAST_RENDERED_MATCHES[i]) addToToday(LAST_RENDERED_MATCHES[i]);
-      el.textContent="Added ✓"; el.style.opacity=".55";
-    });
-  });
-
-  document.getElementById("out").style.display="block";
-}
-
-/* --- today list --- */
+/* ------------------ Today list ------------------ */
 function loadToday(){
   try{
     const raw=localStorage.getItem(LS_KEY);
@@ -488,7 +415,9 @@ function addToToday(m){
   const key=todayKeyForMatch(m);
   if(TODAY.some(x=>x.key===key)){ showToast("Already added"); return; }
   TODAY.unshift({
-    key, tour:tourEl.value, addedAt:new Date().toISOString(),
+    key,
+    tour:tourEl.value,
+    addedAt:new Date().toISOString(),
     title:matchTitle(m),
     a:simplifySide(m.a),
     b:m.b?simplifySide(m.b):null
@@ -506,21 +435,20 @@ function removeFromToday(key){
 function clearToday(){
   TODAY=[]; saveToday(); renderToday(); showToast("Cleared");
 }
+function fmt(v){ return (v===null||v===undefined)?"—":String(v); }
+
 function renderToday(){
   todayListEl.innerHTML="";
   if(!TODAY.length){
     todayHintEl.textContent="Nothing added yet.";
-    exportTodayBtn.disabled=true;
-    clearTodayBtn.disabled=true;
     return;
   }
   todayHintEl.textContent=`${TODAY.length} match${TODAY.length===1?"":"es"} saved.`;
-  exportTodayBtn.disabled=false;
-  clearTodayBtn.disabled=false;
 
   TODAY.forEach(item=>{
     const div=document.createElement("div");
     div.className="item";
+
     const left=document.createElement("div");
     const tourLabel=item.tour==="WTA"?"WTA":"ATP/CH";
     const metaA=item.a?`A: H ${fmt(item.a.predHold)} · B ${fmt(item.a.predBreak)} · C ${fmt(item.a.predCombined)}`:"";
@@ -530,12 +458,14 @@ function renderToday(){
       <div class="meta">${tourLabel} · ${new Date(item.addedAt).toLocaleString()}</div>
       <div class="meta">${escapeHtml(metaA)}${metaB?`<br/>${escapeHtml(metaB)}`:""}</div>
     `;
+
     const actions=document.createElement("div");
     actions.className="actions";
     actions.innerHTML=`
       <span class="pill small" data-copy="${encodeURIComponent(item.title)}">⚡ Copy</span>
       <span class="pill small remove" data-remove="${encodeURIComponent(item.key)}">Remove</span>
     `;
+
     div.appendChild(left);
     div.appendChild(actions);
     todayListEl.appendChild(div);
@@ -548,9 +478,75 @@ function renderToday(){
     el.addEventListener("click", ()=>removeFromToday(decodeURIComponent(el.getAttribute("data-remove")||"")));
   });
 }
-function fmt(v){ return (v===null||v===undefined)?"—":String(v); }
 
-/* --- export CSV helper --- */
+/* ------------------ render results ------------------ */
+function render(matches){
+  const thead=document.getElementById("thead");
+  const tbody=document.getElementById("tbody");
+
+  thead.innerHTML = `
+    <tr>
+      <th>Match</th><th></th>
+      <th class="right">Pred Hold</th>
+      <th class="right">Pred Break</th>
+      <th class="right">Pred Combined</th>
+      <th class="right">SPW</th>
+      <th class="right">RPW</th>
+    </tr>`;
+  tbody.innerHTML="";
+
+  matches.forEach((m, idx)=>{
+    const title=matchTitle(m);
+    const key=todayKeyForMatch(m);
+    const already=TODAY.some(x=>x.key===key);
+
+    const trH=document.createElement("tr");
+    trH.className="match-row";
+    trH.innerHTML=`
+      <td colspan="7">
+        <div class="match-title">
+          <span>${escapeHtml(title)}</span>
+          <span class="match-actions">
+            <span class="pill small add" data-add="${idx}" ${already?'style="opacity:.55"':''}>${already?"Added ✓":"Add to Today"}</span>
+            <span class="pill small" data-copytitle="${encodeURIComponent(title)}">⚡ Copy</span>
+          </span>
+        </div>
+      </td>`;
+    tbody.appendChild(trH);
+
+    [m.a,m.b].forEach(s=>{
+      if(!s) return;
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td><div class="player">${escapeHtml(s.player)}</div>${s.opponent?`<div class="muted">vs ${escapeHtml(s.opponent)}</div>`:""}</td>
+        <td><span class="pill small" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
+        <td class="right">${Number.isFinite(s.predHold)?s.predHold.toFixed(1):""}</td>
+        <td class="right">${Number.isFinite(s.predBreak)?s.predBreak.toFixed(1):""}</td>
+        <td class="right">${Number.isFinite(s.predCombined)?s.predCombined.toFixed(1):""}</td>
+        <td class="right">${Number.isFinite(s.spw)?s.spw.toFixed(1):""}</td>
+        <td class="right">${Number.isFinite(s.rpw)?s.rpw.toFixed(1):""}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  tbody.querySelectorAll("[data-copy]").forEach(el=>{
+    el.addEventListener("click", ()=>copyText(decodeURIComponent(el.getAttribute("data-copy")||"")));
+  });
+  tbody.querySelectorAll("[data-copytitle]").forEach(el=>{
+    el.addEventListener("click", ()=>copyText(decodeURIComponent(el.getAttribute("data-copytitle")||"")));
+  });
+  tbody.querySelectorAll("[data-add]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const i=parseInt(el.getAttribute("data-add"),10);
+      if(Number.isFinite(i) && LAST_RENDERED_MATCHES[i]) addToToday(LAST_RENDERED_MATCHES[i]);
+    });
+  });
+
+  document.getElementById("out").style.display="block";
+}
+
+/* ------------------ export ------------------ */
 function downloadCSV(rows, filename){
   if(!rows.length){ showToast("Nothing to export"); return; }
   const headers=Object.keys(rows[0]);
@@ -586,10 +582,13 @@ function toExportRows(matches){
   return rows;
 }
 
-/* --- buttons --- */
+/* ------------------ buttons ------------------ */
 runBtn.addEventListener("click", ()=>{
   const f=fileEl.files && fileEl.files[0];
-  if(!f){ showToast("Choose a CSV"); return; }
+  if(!f){
+    showToast("Choose a CSV first");
+    return;
+  }
 
   Papa.parse(f,{
     header:true,
@@ -598,11 +597,20 @@ runBtn.addEventListener("click", ()=>{
       const matches=buildMatches(res.data||[]);
       const filtered=matches.filter(matchPasses);
       LAST_RENDERED_MATCHES=filtered;
-      exportBtn.disabled = filtered.length===0;
       render(filtered);
+      showToast(filtered.length ? "Done" : "No matches");
     }
   });
 });
 
 exportBtn.addEventListener("click", ()=>{
-  const stamp=ne
+  if(!LAST_RENDERED_MATCHES.length){
+    showToast("Run filter first");
+    return;
+  }
+  const stamp=new Date().toISOString().slice(0,10).replace(/-/g,"");
+  const tour = tourEl.value==="WTA"?"WTA":"ATP_CH";
+  downloadCSV(toExportRows(LAST_RENDERED_MATCHES), `PM_results_${tour}_${stamp}.csv`);
+});
+
+exportTodayBtn.addEventList
