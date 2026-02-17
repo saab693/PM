@@ -9,8 +9,6 @@
 <meta name="theme-color" content="#6a00ff">
 <link rel="icon" href="PM_icon.png">
 
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
 <style>
 :root{
   --bg:#090a12;
@@ -122,9 +120,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   border:1px solid rgba(255,255,255,.10);
 }
 
-.card-head{
-  display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;
-}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
 .card h2{
   margin:0;
   font-size:14px;
@@ -148,38 +144,18 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 .item .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 
 .toast{
-  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
   background:rgba(20,20,28,.92);
   border:1px solid rgba(255,255,255,.12);
   color:rgba(242,242,247,.95);
-  padding:10px 12px; border-radius:12px;
+  padding:10px 12px;border-radius:12px;
   box-shadow:0 16px 50px rgba(0,0,0,.6);
   font-weight:950;
-  opacity:0; pointer-events:none;
+  opacity:0;pointer-events:none;
   transition:opacity .18s ease, transform .18s ease;
   z-index:9999;
 }
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px);}
-
-#debugBox{
-  margin:0 0 14px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.05);
-  padding:10px 12px;
-  font-size:12px;
-  color:rgba(242,242,247,.88);
-  white-space:pre-wrap;
-  display:none;
-}
-#debugBox.bad{
-  display:block;
-  border-color:rgba(255,80,80,.35);
-  background:rgba(255,80,80,.12);
-}
-#debugBox.good{
-  display:block;
-}
 </style>
 </head>
 
@@ -187,10 +163,6 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <div class="wrap">
   <h1>PM Filter</h1>
 
-  <!-- In-app debug -->
-  <div id="debugBox" class="good"></div>
-
-  <!-- Today List -->
   <div class="card">
     <div class="card-head">
       <h2>Today’s List</h2>
@@ -223,28 +195,8 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 
       <div>
         <div class="label">Predicted hold ≥ (SPW/RPW matchup)</div>
-        <!-- Pre-populated so it works even if JS crashes -->
-        <select id="holdMin">
-          <option value="66">66%</option>
-          <option value="67">67%</option>
-          <option value="68">68%</option>
-          <option value="69">69%</option>
-          <option value="70">70%</option>
-          <option value="71">71%</option>
-          <option value="72">72%</option>
-          <option value="73">73%</option>
-          <option value="74">74%</option>
-          <option value="75">75%</option>
-          <option value="78" selected>78%</option>
-          <option value="79">79%</option>
-          <option value="80">80%</option>
-          <option value="81">81%</option>
-          <option value="82">82%</option>
-          <option value="83">83%</option>
-          <option value="84">84%</option>
-          <option value="85">85%</option>
-        </select>
-        <div class="small" id="holdHint">If this dropdown won’t open, JS has crashed (see debug box).</div>
+        <select id="holdMin"></select>
+        <div class="small" id="holdHint"></div>
       </div>
 
       <div>
@@ -276,29 +228,14 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <div class="toast" id="toast"></div>
 
 <script>
-/* ---------- debug + error capture ---------- */
-const debugBox = document.getElementById("debugBox");
-function dbg(msg, bad=false){
-  debugBox.className = bad ? "bad" : "good";
-  debugBox.style.display = "block";
-  debugBox.textContent += (debugBox.textContent ? "\n" : "") + msg;
-}
-window.addEventListener("error", (e)=>{
-  dbg("JS ERROR: " + (e.message || "unknown") + (e.filename ? ("\n" + e.filename + ":" + e.lineno) : ""), true);
-});
-window.addEventListener("unhandledrejection", (e)=>{
-  dbg("PROMISE ERROR: " + (e.reason?.message || String(e.reason || "unknown")), true);
-});
-
-dbg("JS loaded.");
-
-/* ---------- app ---------- */
+/* ---------------- settings ---------------- */
 const HOLD_PRESETS = {
   PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
 };
 const LS_KEY = "pm_today_list_v1";
 
+/* ---------------- elements ---------------- */
 const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
 const holdMinEl=document.getElementById("holdMin");
@@ -313,11 +250,14 @@ const todayHintEl=document.getElementById("todayHint");
 const todayListEl=document.getElementById("todayList");
 const toggleTodayBtn=document.getElementById("toggleToday");
 const todayBody=document.getElementById("todayBody");
+
 const toast=document.getElementById("toast");
 
+/* ---------------- state ---------------- */
 let LAST_RENDERED_MATCHES=[];
 let TODAY=loadToday();
 
+/* ---------------- toast ---------------- */
 let toastTimer=null;
 function showToast(msg){
   toast.textContent=msg;
@@ -326,6 +266,7 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove("show"), 1100);
 }
 
+/* ---------------- dropdown ---------------- */
 function rebuildHoldDropdown(){
   const preset=HOLD_PRESETS[tourEl.value];
   holdMinEl.innerHTML="";
@@ -337,15 +278,66 @@ function rebuildHoldDropdown(){
   });
   holdMinEl.value=String(preset.def);
   holdHintEl.textContent=preset.label;
-  dbg("Hold dropdown built for: " + tourEl.value);
 }
-tourEl.addEventListener("change", rebuildHoldDropdown);
+tourEl.addEventListener("change",rebuildHoldDropdown);
 rebuildHoldDropdown();
 
-fileEl.addEventListener("change", ()=>{
-  dbg("File selected: " + (fileEl.files?.[0]?.name || "none"));
-});
+/* ---------------- CSV parser (no external libs) ---------------- */
+/* Supports commas, quotes, newlines in quoted fields. */
+function parseCSV(text){
+  const rows=[];
+  let row=[], field="", inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field+='"'; i++; }
+        else inQuotes=false;
+      }else{
+        field+=c;
+      }
+    }else{
+      if(c === '"'){ inQuotes=true; }
+      else if(c === ','){ row.push(field); field=""; }
+      else if(c === '\r'){ /* ignore */ }
+      else if(c === '\n'){
+        row.push(field); field="";
+        // skip empty trailing line
+        if(row.length>1 || (row.length===1 && row[0].trim()!=="")) rows.push(row);
+        row=[];
+      }else{
+        field+=c;
+      }
+    }
+  }
+  // last row
+  if(field.length || row.length){
+    row.push(field);
+    if(row.length>1 || (row.length===1 && row[0].trim()!=="")) rows.push(row);
+  }
+  if(!rows.length) return [];
+  const headers = rows[0].map(h=>h.trim());
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const obj={};
+    for(let c=0;c<headers.length;c++){
+      obj[headers[c]] = rows[r][c] ?? "";
+    }
+    out.push(obj);
+  }
+  return out;
+}
 
+function readFileAsText(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>resolve(String(fr.result||""));
+    fr.onerror=()=>reject(fr.error || new Error("File read failed"));
+    fr.readAsText(file);
+  });
+}
+
+/* ---------------- helpers ---------------- */
 function num(x){ return parseFloat(String(x??"").replace("%","").replace(",",".").trim()); }
 const pctToDec = p => p/100;
 const decToPct = d => d*100;
@@ -373,6 +365,7 @@ function extract(row){
   const oph = pick(row,["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
   return { player:String(player??"").trim(), spw:num(spw), rpw:num(rpw), sh:num(sh), oph:num(oph) };
 }
+
 function computeFallback(x, opp){
   const hold = Number.isFinite(x.sh) ? x.sh : NaN;
   let oppHold = NaN;
@@ -382,6 +375,7 @@ function computeFallback(x, opp){
   const comb = (Number.isFinite(hold) && Number.isFinite(brk)) ? hold+brk : NaN;
   return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb };
 }
+
 function computeMatchup(a,b){
   const usable = Number.isFinite(a.spw)&&Number.isFinite(a.rpw)&&Number.isFinite(b.spw)&&Number.isFinite(b.rpw);
   if(usable){
@@ -396,6 +390,7 @@ function computeMatchup(a,b){
   }
   return { a:computeFallback(a,b), b:computeFallback(b,a) };
 }
+
 function buildMatches(data){
   const rows = (data||[]).map(extract);
   const matches=[];
@@ -407,6 +402,7 @@ function buildMatches(data){
   }
   return matches;
 }
+
 function matchPasses(m){
   const holdMin=num(holdMinEl.value);
   const minComb=num(minCombinedEl.value);
@@ -414,6 +410,7 @@ function matchPasses(m){
   return pass(m.a) || pass(m.b);
 }
 
+/* ---------------- UI helpers ---------------- */
 function escapeHtml(s){
   return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
@@ -427,7 +424,7 @@ function todayKeyForMatch(m){
 }
 function matchTitle(m){ return m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`; }
 
-/* Today list */
+/* ---------------- Today list ---------------- */
 function loadToday(){
   try{
     const raw=localStorage.getItem(LS_KEY);
@@ -436,6 +433,7 @@ function loadToday(){
   }catch(e){ return []; }
 }
 function saveToday(){ localStorage.setItem(LS_KEY, JSON.stringify(TODAY)); }
+
 function simplifySide(s){
   return {
     player:s.player, opponent:s.opponent||"",
@@ -469,6 +467,7 @@ function clearToday(){
   TODAY=[]; saveToday(); renderToday(); showToast("Cleared");
 }
 function fmt(v){ return (v===null||v===undefined)?"—":String(v); }
+
 function renderToday(){
   todayListEl.innerHTML="";
   if(!TODAY.length){
@@ -479,6 +478,7 @@ function renderToday(){
   TODAY.forEach(item=>{
     const div=document.createElement("div");
     div.className="item";
+
     const left=document.createElement("div");
     const tourLabel=item.tour==="WTA"?"WTA":"ATP/CH";
     const metaA=item.a?`A: H ${fmt(item.a.predHold)} · B ${fmt(item.a.predBreak)} · C ${fmt(item.a.predCombined)}`:"";
@@ -488,13 +488,16 @@ function renderToday(){
       <div class="meta">${tourLabel} · ${new Date(item.addedAt).toLocaleString()}</div>
       <div class="meta">${escapeHtml(metaA)}${metaB?`<br/>${escapeHtml(metaB)}`:""}</div>
     `;
+
     const actions=document.createElement("div");
     actions.className="actions";
     actions.innerHTML=`
       <span class="pill small" data-copy="${encodeURIComponent(item.title)}">⚡ Copy</span>
       <span class="pill small remove" data-remove="${encodeURIComponent(item.key)}">Remove</span>
     `;
-    div.appendChild(left); div.appendChild(actions);
+
+    div.appendChild(left);
+    div.appendChild(actions);
     todayListEl.appendChild(div);
   });
 
@@ -506,10 +509,11 @@ function renderToday(){
   });
 }
 
-/* Results render */
+/* ---------------- Results render ---------------- */
 function render(matches){
   const thead=document.getElementById("thead");
   const tbody=document.getElementById("tbody");
+
   thead.innerHTML = `
     <tr>
       <th>Match</th><th></th>
@@ -572,7 +576,7 @@ function render(matches){
   document.getElementById("out").style.display="block";
 }
 
-/* export */
+/* ---------------- export helpers ---------------- */
 function downloadCSV(rows, filename){
   if(!rows.length){ showToast("Nothing to export"); return; }
   const headers=Object.keys(rows[0]);
@@ -592,4 +596,11 @@ function downloadCSV(rows, filename){
 function toExportRows(matches){
   const rows=[];
   matches.forEach(m=>{
-    cons
+    const title=matchTitle(m);
+    [m.a,m.b].forEach(s=>{
+      if(!s) return;
+      rows.push({
+        Match:title, Player:s.player, Opponent:s.opponent||"",
+        "Pred Hold":Number.isFinite(s.predHold)?s.predHold.toFixed(1):"",
+        "Pred Break":Number.isFinite(s.predBreak)?s.predBreak.toFixed(1):"",
+        "
