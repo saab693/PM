@@ -34,11 +34,22 @@ body{
   padding:18px 14px 28px;
 }
 .wrap{max-width:980px;margin:0 auto}
+
 .header{
-  display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
 }
-h1{margin:18px 0 14px;font-size:56px;font-weight:800; line-height:1}
-.top-actions{display:flex; gap:10px; align-items:center}
+h1{margin:18px 0 14px;font-size:56px;font-weight:800;line-height:1}
+
+.top-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
 
 .panel{
   background:var(--card);
@@ -107,7 +118,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 
 .pill{
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
-  cursor:pointer;font-weight:900
+  cursor:pointer;font-weight:900; display:inline-block;
 }
 .pill.small{padding:7px 10px;font-size:13px}
 .small{font-size:12px;color:var(--muted);margin-top:6px}
@@ -115,9 +126,13 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 
 .match-row{background:rgba(255,255,255,.03); font-weight:900}
 .match-title{
-  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
 }
-.match-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.match-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
 .toast{
   position:fixed;
@@ -137,69 +152,18 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   z-index:9999;
 }
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px);}
-
-/* Modal */
-.modal-backdrop{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.65);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:16px;
-  z-index:9998;
-}
-.modal{
-  width:min(920px, 100%);
-  max-height:80vh;
-  overflow:auto;
-  background:rgba(20,20,28,.98);
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:18px;
-  box-shadow:0 22px 70px rgba(0,0,0,.75);
-  padding:14px;
-}
-.modal-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin-bottom:10px;
-}
-.modal-title{
-  font-weight:950;
-  font-size:16px;
-  letter-spacing:.06em;
-  text-transform:uppercase;
-  color:rgba(242,242,247,.90);
-}
-.list{
-  display:grid;
-  gap:10px;
-}
-.item{
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(255,255,255,.04);
-  border-radius:16px;
-  padding:12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
-}
-.item .title{font-weight:950;font-size:16px}
-.item .meta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.3}
-.item .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-hr.sep{border:none;border-top:1px solid rgba(255,255,255,.10);margin:12px 0}
 </style>
 </head>
 
 <body>
 <div class="wrap">
+
   <div class="header">
     <h1>PM Filter</h1>
     <div class="top-actions">
-      <button class="btn secondary small" id="todayBtn">Today (0)</button>
+      <button class="btn secondary small" id="exportToday">Export Today (0)</button>
+      <button class="btn secondary small" id="copyToday">Copy Today</button>
+      <button class="btn secondary small" id="clearToday">Clear</button>
     </div>
   </div>
 
@@ -252,40 +216,14 @@ hr.sep{border:none;border-top:1px solid rgba(255,255,255,.10);margin:12px 0}
   </div>
 </div>
 
-<!-- Today modal -->
-<div class="modal-backdrop" id="todayModal">
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-head">
-      <div class="modal-title">Today’s List</div>
-      <button class="btn secondary small" id="closeToday">Close</button>
-    </div>
-
-    <div class="row grid2">
-      <button class="btn secondary" id="exportToday">Export Today (CSV)</button>
-      <button class="btn secondary" id="copyToday">Copy Today</button>
-    </div>
-
-    <div class="row" style="margin-top:10px;">
-      <button class="btn secondary" id="clearToday">Clear Today</button>
-      <div class="small" id="todayHint">Nothing added yet.</div>
-    </div>
-
-    <hr class="sep"/>
-
-    <div class="list" id="todayList"></div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-/* ------------------ presets ------------------ */
+/* ================== stable core ================== */
 const HOLD_PRESETS = {
   PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
 };
-
-const LS_KEY = "pm_today_matches_v1";
 
 const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
@@ -295,19 +233,8 @@ const minCombinedEl=document.getElementById("minCombined");
 const exportBtn=document.getElementById("export");
 const toast=document.getElementById("toast");
 
-const todayBtn = document.getElementById("todayBtn");
-const todayModal = document.getElementById("todayModal");
-const closeToday = document.getElementById("closeToday");
-const todayListEl = document.getElementById("todayList");
-const todayHintEl = document.getElementById("todayHint");
-const exportTodayBtn = document.getElementById("exportToday");
-const copyTodayBtn = document.getElementById("copyToday");
-const clearTodayBtn = document.getElementById("clearToday");
-
 let LAST_RENDERED_MATCHES = [];
-let TODAY = loadToday(); // array of {key,title,tour,addedAt,a,b}
 
-/* ------------------ toast ------------------ */
 let toastTimer=null;
 function showToast(msg){
   toast.textContent=msg;
@@ -316,7 +243,6 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove("show"), 900);
 }
 
-/* ------------------ hold dropdown ------------------ */
 function rebuildHoldDropdown(){
   const preset=HOLD_PRESETS[tourEl.value];
   holdMinEl.innerHTML="";
@@ -332,14 +258,12 @@ function rebuildHoldDropdown(){
 tourEl.addEventListener("change",rebuildHoldDropdown);
 rebuildHoldDropdown();
 
-/* ------------------ helpers ------------------ */
 function num(x){
   return parseFloat(String(x??"").replace("%","").replace(",",".").trim());
 }
 const pctToDec = p => p/100;
 const decToPct = d => d*100;
 
-// Markov hold prob from point win prob on serve p
 function holdFromPointP(p){
   if(!(p>0 && p<1)) return NaN;
   const q = 1 - p;
@@ -348,24 +272,19 @@ function holdFromPointP(p){
   const pWinFromDeuce = (p*p) / (1 - 2*p*q);
   return first + deuceReach * pWinFromDeuce;
 }
-
-// pServe(A vs B) = average of A's SPW and (1 - B's RPW)
 function matchupPointServe(spwA_dec, rpwB_dec){
   return (spwA_dec + (1 - rpwB_dec)) / 2;
 }
-
 function pick(row, names){
   for(const n of names){
     if(row[n] !== undefined) return row[n];
   }
   return undefined;
 }
-
 function extract(row){
   const player = pick(row, ["Player","player","Name","name"]);
   const spw  = pick(row, ["SPW %","SPW%","SPW"]);
   const rpw  = pick(row, ["RPW %","RPW%","RPW"]);
-  // fallback raw SH/OpH if SPW/RPW missing
   const sh   = pick(row, ["SH %","SH%","Hold","Hold%","Hold %"]);
   const oph  = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
   return {
@@ -373,51 +292,8 @@ function extract(row){
     spw: num(spw),
     rpw: num(rpw),
     sh: num(sh),
-    oph: num(oph),
-    raw: row
+    oph: num(oph)
   };
-}
-
-/* Build matchup predicted holds from couplets */
-function buildMatches(parsedRows){
-  const rows = parsedRows.map(extract);
-  const matches = [];
-
-  for(let i=0;i<rows.length;i+=2){
-    const a = rows[i];
-    const b = rows[i+1];
-
-    if(!a || !a.player) continue;
-    if(!b || !b.player) {
-      matches.push({ a: computeFallback(a), b: null, idx: i });
-      continue;
-    }
-
-    const computed = computeMatchup(a,b);
-    matches.push({ ...computed, idx: i });
-  }
-  return matches;
-}
-
-function computeMatchup(a,b){
-  const usable = Number.isFinite(a.spw) && Number.isFinite(a.rpw) && Number.isFinite(b.spw) && Number.isFinite(b.rpw);
-
-  if(usable){
-    const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
-    const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
-    const holdA = decToPct(holdFromPointP(pServeA));
-    const holdB = decToPct(holdFromPointP(pServeB));
-
-    const breakA = 100 - holdB;
-    const breakB = 100 - holdA;
-
-    return {
-      a: { ...a, opponent: b.player, predHold: holdA, predBreak: breakA, predCombined: holdA + breakA },
-      b: { ...b, opponent: a.player, predHold: holdB, predBreak: breakB, predCombined: holdB + breakB }
-    };
-  }
-
-  return { a: computeFallback(a, b), b: computeFallback(b, a) };
 }
 
 function computeFallback(x, opp){
@@ -433,29 +309,49 @@ function computeFallback(x, opp){
   return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb };
 }
 
-/* Filter by MATCH: if either player passes thresholds, show BOTH */
+function computeMatchup(a,b){
+  const usable = Number.isFinite(a.spw) && Number.isFinite(a.rpw) && Number.isFinite(b.spw) && Number.isFinite(b.rpw);
+  if(usable){
+    const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
+    const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
+    const holdA = decToPct(holdFromPointP(pServeA));
+    const holdB = decToPct(holdFromPointP(pServeB));
+    const breakA = 100 - holdB;
+    const breakB = 100 - holdA;
+    return {
+      a: { ...a, opponent: b.player, predHold: holdA, predBreak: breakA, predCombined: holdA + breakA },
+      b: { ...b, opponent: a.player, predHold: holdB, predBreak: breakB, predCombined: holdB + breakB }
+    };
+  }
+  return { a: computeFallback(a,b), b: computeFallback(b,a) };
+}
+
+function buildMatches(parsedRows){
+  const rows = parsedRows.map(extract);
+  const matches = [];
+  for(let i=0;i<rows.length;i+=2){
+    const a = rows[i];
+    const b = rows[i+1];
+    if(!a || !a.player) continue;
+    if(!b || !b.player){
+      matches.push({ a: computeFallback(a), b: null, idx: i });
+      continue;
+    }
+    const computed = computeMatchup(a,b);
+    matches.push({ ...computed, idx: i });
+  }
+  return matches;
+}
+
 function matchPasses(m){
   const holdMin = num(holdMinEl.value);
   const minComb = num(minCombinedEl.value);
-
   const passSide = (s)=>{
     if(!s) return false;
     if(!Number.isFinite(s.predHold) || !Number.isFinite(s.predCombined)) return false;
-    if(s.predHold < holdMin) return false;
-    if(s.predCombined < minComb) return false;
-    return true;
+    return s.predHold >= holdMin && s.predCombined >= minComb;
   };
-
   return passSide(m.a) || passSide(m.b);
-}
-
-async function copyText(text){
-  try{
-    await navigator.clipboard.writeText(text);
-    showToast("Copied");
-  }catch(e){
-    showToast("Copy failed");
-  }
 }
 
 function escapeHtml(s){
@@ -467,7 +363,33 @@ function escapeHtml(s){
     .replace(/'/g,"&#039;");
 }
 
-/* ------------------ TODAY LIST ------------------ */
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); showToast("Copied"); }
+  catch(e){ showToast("Copy failed"); }
+}
+
+/* ================== Today export (minimal, no UI list) ================== */
+/* Everything in try/catch so even if something goes wrong, core app still runs. */
+const LS_KEY = "pm_today_minimal_v1";
+let TODAY = [];
+try{
+  const raw = localStorage.getItem(LS_KEY);
+  TODAY = raw ? JSON.parse(raw) : [];
+  if(!Array.isArray(TODAY)) TODAY = [];
+}catch(e){
+  TODAY = [];
+}
+
+const exportTodayBtn = document.getElementById("exportToday");
+const copyTodayBtn = document.getElementById("copyToday");
+const clearTodayBtn = document.getElementById("clearToday");
+
+function saveToday(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(TODAY)); }catch(e){}
+  exportTodayBtn.textContent = `Export Today (${TODAY.length})`;
+}
+saveToday();
+
 function keyForMatch(m){
   const p1 = m.a?.player || "";
   const p2 = m.b?.player || "";
@@ -488,22 +410,6 @@ function simplifySide(s){
     rpw: Number.isFinite(s.rpw) ? +s.rpw.toFixed(1) : null
   };
 }
-function loadToday(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  }catch(e){
-    return [];
-  }
-}
-function saveToday(){
-  localStorage.setItem(LS_KEY, JSON.stringify(TODAY));
-  updateTodayBadge();
-}
-function updateTodayBadge(){
-  todayBtn.textContent = `Today (${TODAY.length})`;
-}
 
 function addToToday(m){
   const key = keyForMatch(m);
@@ -523,70 +429,37 @@ function addToToday(m){
   showToast("Added");
 }
 
-function removeFromToday(key){
-  TODAY = TODAY.filter(x => x.key !== key);
-  saveToday();
-  renderToday();
-  showToast("Removed");
-}
-
 function clearToday(){
   TODAY = [];
   saveToday();
-  renderToday();
   showToast("Cleared");
 }
 
-function renderToday(){
-  todayListEl.innerHTML = "";
-  if(!TODAY.length){
-    todayHintEl.textContent = "Nothing added yet.";
-    return;
-  }
-  todayHintEl.textContent = `${TODAY.length} match${TODAY.length===1?"":"es"} saved.`;
-
-  TODAY.forEach(item=>{
-    const div = document.createElement("div");
-    div.className = "item";
-
-    const left = document.createElement("div");
-    const metaA = item.a ? `A: H ${fmt(item.a.predHold)} · B ${fmt(item.a.predBreak)} · C ${fmt(item.a.predCombined)}` : "";
-    const metaB = item.b ? `B: H ${fmt(item.b.predHold)} · B ${fmt(item.b.predBreak)} · C ${fmt(item.b.predCombined)}` : "";
-    left.innerHTML = `
-      <div class="title">${escapeHtml(item.title)}</div>
-      <div class="meta">${escapeHtml(item.tour)} · ${new Date(item.addedAt).toLocaleString()}</div>
-      <div class="meta">${escapeHtml(metaA)}${metaB ? "<br/>"+escapeHtml(metaB) : ""}</div>
-    `;
-
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    actions.innerHTML = `
-      <span class="pill small" data-copy="${encodeURIComponent(item.title)}">⚡ Copy</span>
-      <span class="pill small remove" data-remove="${encodeURIComponent(item.key)}">Remove</span>
-    `;
-
-    div.appendChild(left);
-    div.appendChild(actions);
-    todayListEl.appendChild(div);
+function downloadCSV(rows, filename){
+  if(!rows.length){ showToast("Nothing to export"); return; }
+  const headers = Object.keys(rows[0]);
+  const escapeCell = (v)=>{
+    const s = String(v ?? "");
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+    return s;
+  };
+  const lines = [];
+  lines.push(headers.map(escapeCell).join(","));
+  rows.forEach(r=>{
+    lines.push(headers.map(h=>escapeCell(r[h])).join(","));
   });
-
-  todayListEl.querySelectorAll("[data-copy]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const t = decodeURIComponent(el.getAttribute("data-copy")||"");
-      copyText(t);
-    });
-  });
-  todayListEl.querySelectorAll("[data-remove]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const k = decodeURIComponent(el.getAttribute("data-remove")||"");
-      removeFromToday(k);
-    });
-  });
+  const csv = lines.join("\n");
+  const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
-function fmt(v){ return (v===null || v===undefined) ? "—" : String(v); }
-
-/* Export Today */
 function exportTodayCSV(){
   if(!TODAY.length){ showToast("Today is empty"); return; }
   const rows = [];
@@ -612,14 +485,17 @@ function exportTodayCSV(){
   downloadCSV(rows, `PM_today_${stamp}.csv`);
 }
 
-/* Copy Today (newline list) */
-function copyTodayList(){
+function copyToday(){
   if(!TODAY.length){ showToast("Today is empty"); return; }
   const lines = TODAY.map(x => x.title);
   copyText(lines.join("\n"));
 }
 
-/* ------------------ main render ------------------ */
+exportTodayBtn.addEventListener("click", exportTodayCSV);
+copyTodayBtn.addEventListener("click", copyToday);
+clearTodayBtn.addEventListener("click", clearToday);
+
+/* ================== render results ================== */
 function render(matches){
   const thead=document.getElementById("thead");
   const tbody=document.getElementById("tbody");
@@ -648,7 +524,9 @@ function render(matches){
         <div class="match-title">
           <span>${escapeHtml(title)}</span>
           <span class="match-actions">
-            <span class="pill small" data-add="${idx}" style="${already ? "opacity:.55" : ""}">${already ? "Added ✓" : "Add"}</span>
+            <span class="pill small" data-add="${idx}" style="${already ? "opacity:.55" : ""}">
+              ${already ? "Added ✓" : "Add"}
+            </span>
             <span class="pill small" data-copytitle="${encodeURIComponent(title)}">⚡ Copy</span>
           </span>
         </div>
@@ -674,7 +552,6 @@ function render(matches){
     });
   });
 
-  // Copy player
   tbody.querySelectorAll("[data-copy]").forEach(el=>{
     el.addEventListener("click", ()=>{
       const name = decodeURIComponent(el.getAttribute("data-copy") || "");
@@ -682,7 +559,89 @@ function render(matches){
     });
   });
 
-  // Copy match title
   tbody.querySelectorAll("[data-copytitle]").forEach(el=>{
     el.addEventListener("click", ()=>{
-    
+      const t = decodeURIComponent(el.getAttribute("data-copytitle") || "");
+      copyText(t);
+    });
+  });
+
+  tbody.querySelectorAll("[data-add]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const i = parseInt(el.getAttribute("data-add"), 10);
+      if(Number.isFinite(i) && LAST_RENDERED_MATCHES[i]){
+        addToToday(LAST_RENDERED_MATCHES[i]);
+        // visual feedback
+        el.textContent = "Added ✓";
+        el.style.opacity = ".55";
+      }
+    });
+  });
+
+  document.getElementById("out").style.display="block";
+}
+
+/* ================== export results ================== */
+function toExportRows(matches){
+  const rows = [];
+  matches.forEach(m=>{
+    const matchName = titleForMatch(m);
+    [m.a, m.b].forEach(s=>{
+      if(!s) return;
+      rows.push({
+        Match: matchName,
+        Player: s.player,
+        Opponent: s.opponent || "",
+        "Pred Hold": Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : "",
+        "Pred Break": Number.isFinite(s.predBreak) ? s.predBreak.toFixed(1) : "",
+        "Pred Combined": Number.isFinite(s.predCombined) ? s.predCombined.toFixed(1) : "",
+        "SPW %": Number.isFinite(s.spw) ? s.spw.toFixed(1) : "",
+        "RPW %": Number.isFinite(s.rpw) ? s.rpw.toFixed(1) : ""
+      });
+    });
+  });
+  return rows;
+}
+
+document.getElementById("export").addEventListener("click", ()=>{
+  if(!LAST_RENDERED_MATCHES.length){ showToast("Run filter first"); return; }
+  const tour = tourEl.value === "WTA" ? "WTA" : "ATP_CH";
+  const holdMin = holdMinEl.value;
+  const comb = minCombinedEl.value;
+  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
+  downloadCSV(toExportRows(LAST_RENDERED_MATCHES), `PM_results_${tour}_H${holdMin}_C${comb}_${stamp}.csv`);
+});
+
+/* ================== run ================== */
+document.getElementById("run").onclick=()=>{
+  const f = fileEl.files && fileEl.files[0];
+  if(!f){ showToast("Choose a CSV"); return; }
+
+  Papa.parse(f,{
+    header:true,
+    skipEmptyLines:true,
+    complete:(res)=>{
+      const matches = buildMatches(res.data || []);
+      const filteredMatches = matches.filter(matchPasses);
+
+      LAST_RENDERED_MATCHES = filteredMatches;
+      exportBtn.disabled = filteredMatches.length === 0;
+
+      render(filteredMatches);
+      showToast(filteredMatches.length ? "Done" : "No matches");
+    },
+    error: ()=>{
+      showToast("Parse failed");
+    }
+  });
+};
+
+// keep PWA installable
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
