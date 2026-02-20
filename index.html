@@ -34,22 +34,7 @@ body{
   padding:18px 14px 28px;
 }
 .wrap{max-width:980px;margin:0 auto}
-
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:12px;
-  flex-wrap:wrap;
-}
 h1{margin:18px 0 14px;font-size:56px;font-weight:800;line-height:1}
-
-.top-actions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
-}
 
 .panel{
   background:var(--card);
@@ -92,12 +77,6 @@ input,select{
   color:rgba(242,242,247,.92);
   box-shadow:none;
 }
-.btn.small{
-  width:auto;
-  padding:10px 12px;
-  font-size:14px;
-  border-radius:12px;
-}
 
 .table-wrap{
   margin-top:14px;
@@ -120,7 +99,6 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
   cursor:pointer;font-weight:900; display:inline-block;
 }
-.pill.small{padding:7px 10px;font-size:13px}
 .small{font-size:12px;color:var(--muted);margin-top:6px}
 .right{text-align:right}
 
@@ -132,8 +110,6 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   gap:10px;
   flex-wrap:wrap;
 }
-.match-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-
 .toast{
   position:fixed;
   left:50%;
@@ -157,18 +133,9 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 
 <body>
 <div class="wrap">
-
-  <div class="header">
-    <h1>PM Filter</h1>
-    <div class="top-actions">
-      <button class="btn secondary small" id="exportToday">Export Today (0)</button>
-      <button class="btn secondary small" id="copyToday">Copy Today</button>
-      <button class="btn secondary small" id="clearToday">Clear</button>
-    </div>
-  </div>
+  <h1>PM Filter</h1>
 
   <div class="panel">
-
     <div class="row">
       <div>
         <div class="label">CSV file</div>
@@ -184,14 +151,31 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
       </div>
 
       <div>
-        <div class="label">Predicted hold ≥ (SPW/RPW matchup)</div>
+        <div class="label">Prediction source</div>
+        <select id="source">
+          <option value="SPW_RPW" selected>SPW/RPW matchup (Markov hold)</option>
+          <option value="HOLD_BREAK">Hold/Break matchup (SH% + OpH%)</option>
+        </select>
+        <div class="small" id="sourceHint"></div>
+      </div>
+
+      <div>
+        <div class="label">Predicted hold ≥</div>
         <select id="holdMin"></select>
         <div class="small" id="holdHint"></div>
       </div>
 
-      <div>
-        <div class="label">Pred Combined ≥</div>
-        <input id="minCombined" type="number" step="0.1" value="100">
+      <div class="row grid2">
+        <div>
+          <div class="label">Pred Break ≥</div>
+          <input id="minBreak" type="number" step="0.1" value="0">
+          <div class="small">Set >0 only if you want to require breaking ability.</div>
+        </div>
+        <div>
+          <div class="label">Pred Combined ≥</div>
+          <input id="minCombined" type="number" step="0.1" value="100">
+          <div class="small">Combined = Pred Hold + Pred Break</div>
+        </div>
       </div>
 
       <div class="row grid2">
@@ -200,7 +184,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
       </div>
 
       <div class="small">
-        Rows are read in couplets. Odds ignored. If either player passes thresholds, both are shown.
+        Rows are read in couplets (1–2, 3–4…). Odds ignored. If either player passes thresholds, both are shown.
       </div>
     </div>
 
@@ -212,14 +196,13 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
         </table>
       </div>
     </div>
-
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ================== stable core ================== */
+/* ------------------ presets ------------------ */
 const HOLD_PRESETS = {
   PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
   WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
@@ -227,9 +210,14 @@ const HOLD_PRESETS = {
 
 const fileEl=document.getElementById("file");
 const tourEl=document.getElementById("tour");
+const sourceEl=document.getElementById("source");
+const sourceHintEl=document.getElementById("sourceHint");
+
 const holdMinEl=document.getElementById("holdMin");
 const holdHintEl=document.getElementById("holdHint");
+const minBreakEl=document.getElementById("minBreak");
 const minCombinedEl=document.getElementById("minCombined");
+
 const exportBtn=document.getElementById("export");
 const toast=document.getElementById("toast");
 
@@ -258,12 +246,34 @@ function rebuildHoldDropdown(){
 tourEl.addEventListener("change",rebuildHoldDropdown);
 rebuildHoldDropdown();
 
-function num(x){
-  return parseFloat(String(x??"").replace("%","").replace(",",".").trim());
+function updateSourceHint(){
+  if(sourceEl.value==="SPW_RPW"){
+    sourceHintEl.textContent="Uses SPW/RPW matchup → point p on serve → Markov hold% (then break is complement of opponent hold).";
+  }else{
+    sourceHintEl.textContent="Uses SH% + OpH% (break=100−OpH) and combines them by matchup: Hold(A|B)=avg(H_A, OpH_B), Break(A|B)=avg(Brk_A, 100−H_B).";
+  }
 }
+sourceEl.addEventListener("change", updateSourceHint);
+updateSourceHint();
+
+/* ------------------ helpers ------------------ */
+function num(x){
+  const v = parseFloat(String(x??"").replace("%","").replace(",",".").trim());
+  return Number.isFinite(v) ? v : NaN;
+}
+function finite(x){ return Number.isFinite(x); }
+function avg2(a,b){
+  const A = finite(a), B = finite(b);
+  if(A && B) return (a+b)/2;
+  if(A) return a;
+  if(B) return b;
+  return NaN;
+}
+
 const pctToDec = p => p/100;
 const decToPct = d => d*100;
 
+// Markov hold prob from point win prob on serve p
 function holdFromPointP(p){
   if(!(p>0 && p<1)) return NaN;
   const q = 1 - p;
@@ -272,21 +282,31 @@ function holdFromPointP(p){
   const pWinFromDeuce = (p*p) / (1 - 2*p*q);
   return first + deuceReach * pWinFromDeuce;
 }
+
+// pServe(A vs B) = average of A's SPW and (1 - B's RPW)
 function matchupPointServe(spwA_dec, rpwB_dec){
   return (spwA_dec + (1 - rpwB_dec)) / 2;
 }
+
 function pick(row, names){
   for(const n of names){
     if(row[n] !== undefined) return row[n];
   }
   return undefined;
 }
+
 function extract(row){
+  // names
   const player = pick(row, ["Player","player","Name","name"]);
+
+  // SPW/RPW (points)
   const spw  = pick(row, ["SPW %","SPW%","SPW"]);
   const rpw  = pick(row, ["RPW %","RPW%","RPW"]);
+
+  // Hold/OpH (games)
   const sh   = pick(row, ["SH %","SH%","Hold","Hold%","Hold %"]);
   const oph  = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
+
   return {
     player: String(player??"").trim(),
     spw: num(spw),
@@ -294,64 +314,6 @@ function extract(row){
     sh: num(sh),
     oph: num(oph)
   };
-}
-
-function computeFallback(x, opp){
-  const hold = Number.isFinite(x.sh) ? x.sh : NaN;
-
-  let oppHold = NaN;
-  if(opp && Number.isFinite(opp.sh)) oppHold = opp.sh;
-  else if(Number.isFinite(x.oph)) oppHold = x.oph;
-
-  const brk = Number.isFinite(oppHold) ? 100 - oppHold : NaN;
-  const comb = (Number.isFinite(hold) && Number.isFinite(brk)) ? hold + brk : NaN;
-
-  return { ...x, opponent: opp ? opp.player : "", predHold: hold, predBreak: brk, predCombined: comb };
-}
-
-function computeMatchup(a,b){
-  const usable = Number.isFinite(a.spw) && Number.isFinite(a.rpw) && Number.isFinite(b.spw) && Number.isFinite(b.rpw);
-  if(usable){
-    const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
-    const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
-    const holdA = decToPct(holdFromPointP(pServeA));
-    const holdB = decToPct(holdFromPointP(pServeB));
-    const breakA = 100 - holdB;
-    const breakB = 100 - holdA;
-    return {
-      a: { ...a, opponent: b.player, predHold: holdA, predBreak: breakA, predCombined: holdA + breakA },
-      b: { ...b, opponent: a.player, predHold: holdB, predBreak: breakB, predCombined: holdB + breakB }
-    };
-  }
-  return { a: computeFallback(a,b), b: computeFallback(b,a) };
-}
-
-function buildMatches(parsedRows){
-  const rows = parsedRows.map(extract);
-  const matches = [];
-  for(let i=0;i<rows.length;i+=2){
-    const a = rows[i];
-    const b = rows[i+1];
-    if(!a || !a.player) continue;
-    if(!b || !b.player){
-      matches.push({ a: computeFallback(a), b: null, idx: i });
-      continue;
-    }
-    const computed = computeMatchup(a,b);
-    matches.push({ ...computed, idx: i });
-  }
-  return matches;
-}
-
-function matchPasses(m){
-  const holdMin = num(holdMinEl.value);
-  const minComb = num(minCombinedEl.value);
-  const passSide = (s)=>{
-    if(!s) return false;
-    if(!Number.isFinite(s.predHold) || !Number.isFinite(s.predCombined)) return false;
-    return s.predHold >= holdMin && s.predCombined >= minComb;
-  };
-  return passSide(m.a) || passSide(m.b);
 }
 
 function escapeHtml(s){
@@ -364,75 +326,206 @@ function escapeHtml(s){
 }
 
 async function copyText(text){
-  try{ await navigator.clipboard.writeText(text); showToast("Copied"); }
-  catch(e){ showToast("Copy failed"); }
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast("Copied");
+  }catch(e){
+    showToast("Copy failed");
+  }
 }
 
-/* ================== Today export (minimal, no UI list) ================== */
-/* Everything in try/catch so even if something goes wrong, core app still runs. */
-const LS_KEY = "pm_today_minimal_v1";
-let TODAY = [];
-try{
-  const raw = localStorage.getItem(LS_KEY);
-  TODAY = raw ? JSON.parse(raw) : [];
-  if(!Array.isArray(TODAY)) TODAY = [];
-}catch(e){
-  TODAY = [];
-}
+/* ------------------ matchup calculators ------------------ */
+function computeSPW_RPW(a,b){
+  // requires both players have spw/rpw
+  const usable = finite(a.spw) && finite(a.rpw) && finite(b.spw) && finite(b.rpw);
+  if(!usable){
+    // fallback if SPW/RPW missing: use SH/OpH if available directly (non-matchup)
+    return computeFallbackFromHoldBreak(a,b);
+  }
 
-const exportTodayBtn = document.getElementById("exportToday");
-const copyTodayBtn = document.getElementById("copyToday");
-const clearTodayBtn = document.getElementById("clearToday");
+  const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
+  const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
 
-function saveToday(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify(TODAY)); }catch(e){}
-  exportTodayBtn.textContent = `Export Today (${TODAY.length})`;
-}
-saveToday();
+  const holdA = decToPct(holdFromPointP(pServeA));
+  const holdB = decToPct(holdFromPointP(pServeB));
 
-function keyForMatch(m){
-  const p1 = m.a?.player || "";
-  const p2 = m.b?.player || "";
-  return (p1 && p2 ? [p1,p2].sort().join("___") : p1).toLowerCase();
-}
-function titleForMatch(m){
-  return m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
-}
-function simplifySide(s){
-  if(!s) return null;
+  // In SPW/RPW mode, break is complement of opponent hold (identity)
+  const breakA = 100 - holdB;
+  const breakB = 100 - holdA;
+
   return {
-    player: s.player,
-    opponent: s.opponent || "",
-    predHold: Number.isFinite(s.predHold) ? +s.predHold.toFixed(1) : null,
-    predBreak: Number.isFinite(s.predBreak) ? +s.predBreak.toFixed(1) : null,
-    predCombined: Number.isFinite(s.predCombined) ? +s.predCombined.toFixed(1) : null,
-    spw: Number.isFinite(s.spw) ? +s.spw.toFixed(1) : null,
-    rpw: Number.isFinite(s.rpw) ? +s.rpw.toFixed(1) : null
+    a: { ...a, opponent:b.player, predHold:holdA, predBreak:breakA, predCombined:holdA+breakA, mode:"SPW_RPW" },
+    b: { ...b, opponent:a.player, predHold:holdB, predBreak:breakB, predCombined:holdB+breakB, mode:"SPW_RPW" }
   };
 }
 
-function addToToday(m){
-  const key = keyForMatch(m);
-  if(TODAY.some(x => x.key === key)){
-    showToast("Already added");
-    return;
-  }
-  TODAY.unshift({
-    key,
-    title: titleForMatch(m),
-    tour: tourEl.value === "WTA" ? "WTA" : "ATP/CH",
-    addedAt: new Date().toISOString(),
-    a: simplifySide(m.a),
-    b: simplifySide(m.b)
-  });
-  saveToday();
-  showToast("Added");
+function computeHOLD_BREAK(a,b){
+  // define break rates from OpH
+  // Brk_A = 100 - OpH_A
+  const brkA = finite(a.oph) ? (100 - a.oph) : NaN;
+  const brkB = finite(b.oph) ? (100 - b.oph) : NaN;
+
+  // Hold(A|B) = avg(H_A, OpH_B) because OpH_B = how often opponents hold vs B
+  const holdA = avg2(a.sh, b.oph);
+  const holdB = avg2(b.sh, a.oph);
+
+  // Break(A|B) = avg(Brk_A, 100 - H_B)
+  const breakA = avg2(brkA, finite(b.sh) ? (100 - b.sh) : NaN);
+  const breakB = avg2(brkB, finite(a.sh) ? (100 - a.sh) : NaN);
+
+  const combA = (finite(holdA) && finite(breakA)) ? (holdA + breakA) : NaN;
+  const combB = (finite(holdB) && finite(breakB)) ? (holdB + breakB) : NaN;
+
+  return {
+    a: { ...a, opponent:b.player, predHold:holdA, predBreak:breakA, predCombined:combA, mode:"HOLD_BREAK" },
+    b: { ...b, opponent:a.player, predHold:holdB, predBreak:breakB, predCombined:combB, mode:"HOLD_BREAK" }
+  };
 }
 
-function clearToday(){
-  TODAY = [];
-  saveToday();
-  showToast("Cleared");
+// Fallback for when SPW/RPW missing but user chose SPW/RPW:
+// use non-matchup hold/break if available, otherwise NaN.
+// (keeps the app working rather than dropping matches)
+function computeFallbackFromHoldBreak(a,b){
+  const holdA = a.sh;
+  const holdB = b.sh;
+  const breakA = finite(b.sh) ? (100 - b.sh) : (finite(a.oph) ? (100 - a.oph) : NaN);
+  const breakB = finite(a.sh) ? (100 - a.sh) : (finite(b.oph) ? (100 - b.oph) : NaN);
+
+  const combA = (finite(holdA) && finite(breakA)) ? (holdA + breakA) : NaN;
+  const combB = (finite(holdB) && finite(breakB)) ? (holdB + breakB) : NaN;
+
+  return {
+    a: { ...a, opponent:b.player, predHold:holdA, predBreak:breakA, predCombined:combA, mode:"FALLBACK" },
+    b: { ...b, opponent:a.player, predHold:holdB, predBreak:breakB, predCombined:combB, mode:"FALLBACK" }
+  };
+}
+
+/* ------------------ couplets → matches ------------------ */
+function buildMatches(parsedRows){
+  const rows = (parsedRows||[]).map(extract);
+  const matches = [];
+
+  for(let i=0;i<rows.length;i+=2){
+    const a = rows[i];
+    const b = rows[i+1];
+
+    if(!a || !a.player) continue;
+    if(!b || !b.player){
+      // single-row leftover (rare)
+      matches.push({ a:{...a, opponent:"", predHold:NaN, predBreak:NaN, predCombined:NaN, mode:"NA"}, b:null, idx:i });
+      continue;
+    }
+
+    const computed = (sourceEl.value==="HOLD_BREAK")
+      ? computeHOLD_BREAK(a,b)
+      : computeSPW_RPW(a,b);
+
+    matches.push({ ...computed, idx:i });
+  }
+  return matches;
+}
+
+/* ------------------ filtering ------------------ */
+function matchPasses(m){
+  const holdMin = num(holdMinEl.value);
+  const minBrk  = num(minBreakEl.value);
+  const minComb = num(minCombinedEl.value);
+
+  const passSide = (s)=>{
+    if(!s) return false;
+    if(!finite(s.predHold) || !finite(s.predBreak) || !finite(s.predCombined)) return false;
+    if(s.predHold < holdMin) return false;
+    if(s.predBreak < minBrk) return false;
+    if(s.predCombined < minComb) return false;
+    return true;
+  };
+
+  // match-level display: if either player passes, show both
+  return passSide(m.a) || passSide(m.b);
+}
+
+/* ------------------ render ------------------ */
+function render(matches){
+  const thead=document.getElementById("thead");
+  const tbody=document.getElementById("tbody");
+
+  thead.innerHTML = `
+    <tr>
+      <th>Match</th>
+      <th></th>
+      <th class="right">Pred Hold</th>
+      <th class="right">Pred Break</th>
+      <th class="right">Pred Combined</th>
+      <th class="right">SPW</th>
+      <th class="right">RPW</th>
+      <th class="right">SH</th>
+      <th class="right">OpH</th>
+      <th>Mode</th>
+    </tr>`;
+  tbody.innerHTML="";
+
+  matches.forEach(m=>{
+    const title = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
+    const trH = document.createElement("tr");
+    trH.className = "match-row";
+    trH.innerHTML = `<td colspan="10"><div class="match-title">${escapeHtml(title)}</div></td>`;
+    tbody.appendChild(trH);
+
+    [m.a, m.b].forEach(s=>{
+      if(!s) return;
+      const tr=document.createElement("tr");
+      tr.innerHTML = `
+        <td>
+          <div class="player">${escapeHtml(s.player)}</div>
+          ${s.opponent ? `<div class="muted">vs ${escapeHtml(s.opponent)}</div>` : ``}
+        </td>
+        <td><span class="pill" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
+        <td class="right">${finite(s.predHold) ? s.predHold.toFixed(1) : ""}</td>
+        <td class="right">${finite(s.predBreak) ? s.predBreak.toFixed(1) : ""}</td>
+        <td class="right">${finite(s.predCombined) ? s.predCombined.toFixed(1) : ""}</td>
+        <td class="right">${finite(s.spw) ? s.spw.toFixed(1) : ""}</td>
+        <td class="right">${finite(s.rpw) ? s.rpw.toFixed(1) : ""}</td>
+        <td class="right">${finite(s.sh) ? s.sh.toFixed(1) : ""}</td>
+        <td class="right">${finite(s.oph) ? s.oph.toFixed(1) : ""}</td>
+        <td>${escapeHtml(s.mode || "")}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  tbody.querySelectorAll("[data-copy]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const name = decodeURIComponent(el.getAttribute("data-copy") || "");
+      copyText(name);
+    });
+  });
+
+  document.getElementById("out").style.display="block";
+}
+
+/* ------------------ export ------------------ */
+function toExportRows(matches){
+  const rows = [];
+  matches.forEach(m=>{
+    const matchName = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
+    [m.a, m.b].forEach(s=>{
+      if(!s) return;
+      rows.push({
+        Match: matchName,
+        Player: s.player,
+        Opponent: s.opponent || "",
+        "Pred Hold": finite(s.predHold) ? s.predHold.toFixed(1) : "",
+        "Pred Break": finite(s.predBreak) ? s.predBreak.toFixed(1) : "",
+        "Pred Combined": finite(s.predCombined) ? s.predCombined.toFixed(1) : "",
+        "SPW %": finite(s.spw) ? s.spw.toFixed(1) : "",
+        "RPW %": finite(s.rpw) ? s.rpw.toFixed(1) : "",
+        "SH %": finite(s.sh) ? s.sh.toFixed(1) : "",
+        "OpH %": finite(s.oph) ? s.oph.toFixed(1) : "",
+        Mode: s.mode || ""
+      });
+    });
+  });
+  return rows;
 }
 
 function downloadCSV(rows, filename){
@@ -460,159 +553,21 @@ function downloadCSV(rows, filename){
   URL.revokeObjectURL(url);
 }
 
-function exportTodayCSV(){
-  if(!TODAY.length){ showToast("Today is empty"); return; }
-  const rows = [];
-  TODAY.forEach(item=>{
-    const matchName = item.title;
-    [item.a, item.b].forEach(s=>{
-      if(!s) return;
-      rows.push({
-        Match: matchName,
-        Tour: item.tour,
-        Player: s.player,
-        Opponent: s.opponent || "",
-        "Pred Hold": s.predHold ?? "",
-        "Pred Break": s.predBreak ?? "",
-        "Pred Combined": s.predCombined ?? "",
-        "SPW %": s.spw ?? "",
-        "RPW %": s.rpw ?? "",
-        AddedAt: item.addedAt
-      });
-    });
-  });
-  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
-  downloadCSV(rows, `PM_today_${stamp}.csv`);
-}
-
-function copyToday(){
-  if(!TODAY.length){ showToast("Today is empty"); return; }
-  const lines = TODAY.map(x => x.title);
-  copyText(lines.join("\n"));
-}
-
-exportTodayBtn.addEventListener("click", exportTodayCSV);
-copyTodayBtn.addEventListener("click", copyToday);
-clearTodayBtn.addEventListener("click", clearToday);
-
-/* ================== render results ================== */
-function render(matches){
-  const thead=document.getElementById("thead");
-  const tbody=document.getElementById("tbody");
-
-  thead.innerHTML = `
-    <tr>
-      <th>Match</th>
-      <th></th>
-      <th class="right">Pred Hold</th>
-      <th class="right">Pred Break</th>
-      <th class="right">Pred Combined</th>
-      <th class="right">SPW</th>
-      <th class="right">RPW</th>
-    </tr>`;
-  tbody.innerHTML="";
-
-  matches.forEach((m, idx)=>{
-    const title = titleForMatch(m);
-    const key = keyForMatch(m);
-    const already = TODAY.some(x => x.key === key);
-
-    const trH = document.createElement("tr");
-    trH.className = "match-row";
-    trH.innerHTML = `
-      <td colspan="7">
-        <div class="match-title">
-          <span>${escapeHtml(title)}</span>
-          <span class="match-actions">
-            <span class="pill small" data-add="${idx}" style="${already ? "opacity:.55" : ""}">
-              ${already ? "Added ✓" : "Add"}
-            </span>
-            <span class="pill small" data-copytitle="${encodeURIComponent(title)}">⚡ Copy</span>
-          </span>
-        </div>
-      </td>`;
-    tbody.appendChild(trH);
-
-    [m.a, m.b].forEach(s=>{
-      if(!s) return;
-      const tr=document.createElement("tr");
-      tr.innerHTML = `
-        <td>
-          <div class="player">${escapeHtml(s.player)}</div>
-          ${s.opponent ? `<div class="muted">vs ${escapeHtml(s.opponent)}</div>` : ``}
-        </td>
-        <td><span class="pill" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
-        <td class="right">${Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : ""}</td>
-        <td class="right">${Number.isFinite(s.predBreak) ? s.predBreak.toFixed(1) : ""}</td>
-        <td class="right">${Number.isFinite(s.predCombined) ? s.predCombined.toFixed(1) : ""}</td>
-        <td class="right">${Number.isFinite(s.spw) ? s.spw.toFixed(1) : ""}</td>
-        <td class="right">${Number.isFinite(s.rpw) ? s.rpw.toFixed(1) : ""}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  });
-
-  tbody.querySelectorAll("[data-copy]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const name = decodeURIComponent(el.getAttribute("data-copy") || "");
-      copyText(name);
-    });
-  });
-
-  tbody.querySelectorAll("[data-copytitle]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const t = decodeURIComponent(el.getAttribute("data-copytitle") || "");
-      copyText(t);
-    });
-  });
-
-  tbody.querySelectorAll("[data-add]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const i = parseInt(el.getAttribute("data-add"), 10);
-      if(Number.isFinite(i) && LAST_RENDERED_MATCHES[i]){
-        addToToday(LAST_RENDERED_MATCHES[i]);
-        // visual feedback
-        el.textContent = "Added ✓";
-        el.style.opacity = ".55";
-      }
-    });
-  });
-
-  document.getElementById("out").style.display="block";
-}
-
-/* ================== export results ================== */
-function toExportRows(matches){
-  const rows = [];
-  matches.forEach(m=>{
-    const matchName = titleForMatch(m);
-    [m.a, m.b].forEach(s=>{
-      if(!s) return;
-      rows.push({
-        Match: matchName,
-        Player: s.player,
-        Opponent: s.opponent || "",
-        "Pred Hold": Number.isFinite(s.predHold) ? s.predHold.toFixed(1) : "",
-        "Pred Break": Number.isFinite(s.predBreak) ? s.predBreak.toFixed(1) : "",
-        "Pred Combined": Number.isFinite(s.predCombined) ? s.predCombined.toFixed(1) : "",
-        "SPW %": Number.isFinite(s.spw) ? s.spw.toFixed(1) : "",
-        "RPW %": Number.isFinite(s.rpw) ? s.rpw.toFixed(1) : ""
-      });
-    });
-  });
-  return rows;
-}
-
 document.getElementById("export").addEventListener("click", ()=>{
   if(!LAST_RENDERED_MATCHES.length){ showToast("Run filter first"); return; }
   const tour = tourEl.value === "WTA" ? "WTA" : "ATP_CH";
   const holdMin = holdMinEl.value;
+  const brkMin = minBreakEl.value;
   const comb = minCombinedEl.value;
+  const src = sourceEl.value === "HOLD_BREAK" ? "HB" : "SPW";
   const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
-  downloadCSV(toExportRows(LAST_RENDERED_MATCHES), `PM_results_${tour}_H${holdMin}_C${comb}_${stamp}.csv`);
+  downloadCSV(
+    toExportRows(LAST_RENDERED_MATCHES),
+    `PM_results_${tour}_${src}_H${holdMin}_B${brkMin}_C${comb}_${stamp}.csv`
+  );
 });
 
-/* ================== run ================== */
+/* ------------------ run ------------------ */
 document.getElementById("run").onclick=()=>{
   const f = fileEl.files && fileEl.files[0];
   if(!f){ showToast("Choose a CSV"); return; }
