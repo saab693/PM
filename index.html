@@ -47,7 +47,6 @@ h1{margin:18px 0 14px;font-size:56px;font-weight:800;line-height:1}
 .row{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:860px){
   .row.grid2{grid-template-columns:1fr 1fr}
-  .row.grid3{grid-template-columns:1fr 1fr 1fr}
 }
 .label{font-size:12px;color:var(--muted);margin-bottom:6px}
 
@@ -94,7 +93,6 @@ thead th{
 }
 tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .player{font-weight:900;font-size:18px}
-.small{font-size:12px;color:var(--muted);margin-top:6px}
 .right{text-align:right}
 
 .pill{
@@ -102,21 +100,14 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
   cursor:pointer;font-weight:900; display:inline-block;
 }
 
+.small{font-size:12px;color:var(--muted);margin-top:6px}
+
 .toast{
-  position:fixed;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%);
-  background:rgba(20,20,28,.92);
-  border:1px solid rgba(255,255,255,.12);
-  color:rgba(242,242,247,.95);
-  padding:10px 12px;
-  border-radius:12px;
-  box-shadow:0 16px 50px rgba(0,0,0,.6);
-  font-weight:900;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity .18s ease, transform .18s ease;
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+  background:rgba(20,20,28,.92);border:1px solid rgba(255,255,255,.12);
+  color:rgba(242,242,247,.95);padding:10px 12px;border-radius:12px;
+  box-shadow:0 16px 50px rgba(0,0,0,.6);font-weight:900;
+  opacity:0;pointer-events:none;transition:opacity .18s ease, transform .18s ease;
   z-index:9999;
 }
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px);}
@@ -140,7 +131,12 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
           <option value="MEN" selected>Men (ATP / Challenger)</option>
           <option value="WOMEN">Women (WTA)</option>
         </select>
-        <div class="small" id="tourHint"></div>
+        <div class="small" id="tourHint">Default hold threshold: 80%</div>
+      </div>
+
+      <div>
+        <div class="label">Min hold % (SH%)</div>
+        <input id="minHold" type="number" step="0.1" value="80">
       </div>
 
       <div class="row grid2">
@@ -159,9 +155,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
         <button class="btn secondary" id="export" disabled>Export Results (CSV)</button>
       </div>
 
-      <div class="small" id="statusLine">
-        Filtering by SH% only (Men ≥ 80, Women ≥ 66) + odds range (if odds column exists).
-      </div>
+      <div class="small" id="status">Ready.</div>
     </div>
 
     <div id="out" class="table-wrap" style="display:none">
@@ -180,11 +174,12 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <script>
 const fileEl = document.getElementById("file");
 const tourEl = document.getElementById("tour");
-const tourHintEl = document.getElementById("tourHint");
+const tourHint = document.getElementById("tourHint");
+const minHoldEl = document.getElementById("minHold");
 const minOddsEl = document.getElementById("minOdds");
 const maxOddsEl = document.getElementById("maxOdds");
 const exportBtn = document.getElementById("export");
-const statusLine = document.getElementById("statusLine");
+const statusEl = document.getElementById("status");
 const toast = document.getElementById("toast");
 
 let LAST_ROWS = [];
@@ -209,51 +204,57 @@ function pick(row, names){
   return undefined;
 }
 
+function escapeHtml(s){
+  return String(s??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function updateTourDefaults(){
+  if(tourEl.value==="MEN"){
+    tourHint.textContent = "Default hold threshold: 80%";
+    if(!minHoldEl.dataset.userSet) minHoldEl.value = "80";
+  }else{
+    tourHint.textContent = "Default hold threshold: 66%";
+    if(!minHoldEl.dataset.userSet) minHoldEl.value = "66";
+  }
+}
+tourEl.addEventListener("change", updateTourDefaults);
+minHoldEl.addEventListener("input", ()=>{ minHoldEl.dataset.userSet="1"; });
+updateTourDefaults();
+
 function extract(row){
   const player = pick(row, ["Player","player","Name","name"]);
   const sh = pick(row, ["SH %","SH%","Hold","Hold%","Hold %"]);
-  const oph = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
-
   const odds = pick(row, ["Odds","odds","Price","price","PM Odds","PreMatch Odds","Match Odds","match odds"]);
-
   return {
     player: String(player ?? "").trim(),
     sh: num(sh),
-    oph: num(oph),
     odds: num(odds)
   };
 }
 
-function updateTourHint(){
-  const t = tourEl.value;
-  tourHintEl.textContent = (t==="MEN")
-    ? "Threshold: SH% ≥ 80"
-    : "Threshold: SH% ≥ 66";
-}
-tourEl.addEventListener("change", updateTourHint);
-updateTourHint();
-
-function thresholds(){
-  return tourEl.value==="MEN" ? { shMin:80 } : { shMin:66 };
-}
-
-function passes(row){
-  const { shMin } = thresholds();
-  if(!row.player) return false;
-  if(!Number.isFinite(row.sh)) return false;
-  if(row.sh < shMin) return false;
-
+function oddsPass(odds){
   const minO = num(minOddsEl.value);
   const maxO = num(maxOddsEl.value);
 
-  // Odds filter:
-  // - if odds is present, enforce range
-  // - if odds missing/NaN, we let it through (and show blank odds)
-  if(Number.isFinite(row.odds) && (Number.isFinite(minO) || Number.isFinite(maxO))){
-    if(Number.isFinite(minO) && row.odds < minO) return false;
-    if(Number.isFinite(maxO) && row.odds > maxO) return false;
-  }
+  // If odds missing, allow through (so blank odds doesn't drop rows)
+  if(!Number.isFinite(odds)) return true;
 
+  if(Number.isFinite(minO) && odds < minO) return false;
+  if(Number.isFinite(maxO) && odds > maxO) return false;
+  return true;
+}
+
+function passes(r){
+  const minHold = num(minHoldEl.value);
+  if(!r.player) return false;
+  if(!Number.isFinite(r.sh)) return false;
+  if(r.sh < minHold) return false;
+  if(!oddsPass(r.odds)) return false;
   return true;
 }
 
@@ -263,27 +264,21 @@ function render(rows){
 
   thead.innerHTML = `
     <tr>
+      <th></th>
       <th>Player</th>
       <th class="right">SH%</th>
-      <th class="right">OpH%</th>
-      <th class="right">Break%</th>
       <th class="right">Odds</th>
-      <th></th>
     </tr>
   `;
   tbody.innerHTML = "";
 
   rows.forEach(r=>{
-    const breakPct = Number.isFinite(r.oph) ? (100 - r.oph) : NaN;
-
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td><span class="pill" data-copy="${encodeURIComponent(r.player)}">⚡</span></td>
       <td><div class="player">${escapeHtml(r.player)}</div></td>
       <td class="right">${Number.isFinite(r.sh) ? r.sh.toFixed(1) : ""}</td>
-      <td class="right">${Number.isFinite(r.oph) ? r.oph.toFixed(1) : ""}</td>
-      <td class="right">${Number.isFinite(breakPct) ? breakPct.toFixed(1) : ""}</td>
       <td class="right">${Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""}</td>
-      <td><span class="pill" data-copy="${encodeURIComponent(r.player)}">⚡</span></td>
     `;
     tbody.appendChild(tr);
   });
@@ -301,15 +296,6 @@ function render(rows){
   });
 
   document.getElementById("out").style.display = "block";
-}
-
-function escapeHtml(s){
-  return String(s??"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
 }
 
 function downloadCSV(rows, filename){
@@ -330,17 +316,13 @@ function downloadCSV(rows, filename){
 }
 
 function exportRows(rows){
-  return rows.map(r=>{
-    const breakPct = Number.isFinite(r.oph) ? (100 - r.oph) : "";
-    return {
-      Tour: tourEl.value==="MEN" ? "MEN" : "WOMEN",
-      Player: r.player,
-      "SH%": Number.isFinite(r.sh) ? r.sh.toFixed(1) : "",
-      "OpH%": Number.isFinite(r.oph) ? r.oph.toFixed(1) : "",
-      "Break%": Number.isFinite(breakPct) ? (+breakPct).toFixed(1) : "",
-      Odds: Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""
-    };
-  });
+  const tour = tourEl.value==="MEN" ? "MEN" : "WOMEN";
+  return rows.map(r=>({
+    Tour: tour,
+    Player: r.player,
+    "SH%": Number.isFinite(r.sh) ? r.sh.toFixed(1) : "",
+    Odds: Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""
+  }));
 }
 
 document.getElementById("run").onclick = ()=>{
@@ -357,10 +339,8 @@ document.getElementById("run").onclick = ()=>{
       LAST_ROWS = filtered;
       exportBtn.disabled = filtered.length === 0;
 
-      const { shMin } = thresholds();
-      statusLine.textContent =
-        `Filtered ${filtered.length} players — SH% ≥ ${shMin}` +
-        `; odds ${minOddsEl.value}–${maxOddsEl.value} (if odds column exists).`;
+      statusEl.textContent =
+        `Filtered ${filtered.length} players (SH ≥ ${minHoldEl.value} ; odds ${minOddsEl.value}–${maxOddsEl.value} if odds present).`;
 
       render(filtered);
       showToast(filtered.length ? "Done" : "No players");
