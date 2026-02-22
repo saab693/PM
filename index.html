@@ -47,6 +47,7 @@ h1{margin:18px 0 14px;font-size:56px;font-weight:800;line-height:1}
 .row{display:grid;gap:12px;grid-template-columns:1fr}
 @media(min-width:860px){
   .row.grid2{grid-template-columns:1fr 1fr}
+  .row.grid3{grid-template-columns:1fr 1fr 1fr}
 }
 .label{font-size:12px;color:var(--muted);margin-bottom:6px}
 
@@ -93,23 +94,14 @@ thead th{
 }
 tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .player{font-weight:900;font-size:18px}
-.muted{color:var(--muted);font-size:12px;margin-top:2px}
+.small{font-size:12px;color:var(--muted);margin-top:6px}
+.right{text-align:right}
 
 .pill{
   padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);
   cursor:pointer;font-weight:900; display:inline-block;
 }
-.small{font-size:12px;color:var(--muted);margin-top:6px}
-.right{text-align:right}
 
-.match-row{background:rgba(255,255,255,.03); font-weight:900}
-.match-title{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
 .toast{
   position:fixed;
   left:50%;
@@ -145,36 +137,20 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
       <div>
         <div class="label">Tour</div>
         <select id="tour">
-          <option value="PRO">ATP / Challenger</option>
-          <option value="WTA">WTA</option>
+          <option value="MEN" selected>Men (ATP / Challenger)</option>
+          <option value="WOMEN">Women (WTA)</option>
         </select>
-      </div>
-
-      <div>
-        <div class="label">Prediction source</div>
-        <select id="source">
-          <option value="SPW_RPW" selected>SPW/RPW matchup (Markov hold)</option>
-          <option value="HOLD_BREAK">Hold/Break matchup (SH% + OpH%)</option>
-        </select>
-        <div class="small" id="sourceHint"></div>
-      </div>
-
-      <div>
-        <div class="label">Predicted hold ≥</div>
-        <select id="holdMin"></select>
-        <div class="small" id="holdHint"></div>
+        <div class="small" id="tourHint"></div>
       </div>
 
       <div class="row grid2">
         <div>
-          <div class="label">Pred Break ≥</div>
-          <input id="minBreak" type="number" step="0.1" value="0">
-          <div class="small">Set >0 only if you want to require breaking ability.</div>
+          <div class="label">Min odds</div>
+          <input id="minOdds" type="number" step="0.01" value="1.15">
         </div>
         <div>
-          <div class="label">Pred Combined ≥</div>
-          <input id="minCombined" type="number" step="0.1" value="100">
-          <div class="small">Combined = Pred Hold + Pred Break</div>
+          <div class="label">Max odds</div>
+          <input id="maxOdds" type="number" step="0.01" value="1.70">
         </div>
       </div>
 
@@ -183,8 +159,8 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
         <button class="btn secondary" id="export" disabled>Export Results (CSV)</button>
       </div>
 
-      <div class="small">
-        Rows are read in couplets (1–2, 3–4…). Odds ignored. If either player passes thresholds, both are shown.
+      <div class="small" id="statusLine">
+        Filtering by SH% only (Men ≥ 80, Women ≥ 66) + odds range (if odds column exists).
       </div>
     </div>
 
@@ -202,26 +178,16 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
 <div class="toast" id="toast"></div>
 
 <script>
-/* ------------------ presets ------------------ */
-const HOLD_PRESETS = {
-  PRO: { values:[75,76,77,78,79,80,81,82,83,84,85], def:78, label:"ATP/Challenger preset" },
-  WTA: { values:[63,64,65,66,67,68,69,70,71,72,73,74,75], def:66, label:"WTA preset" }
-};
+const fileEl = document.getElementById("file");
+const tourEl = document.getElementById("tour");
+const tourHintEl = document.getElementById("tourHint");
+const minOddsEl = document.getElementById("minOdds");
+const maxOddsEl = document.getElementById("maxOdds");
+const exportBtn = document.getElementById("export");
+const statusLine = document.getElementById("statusLine");
+const toast = document.getElementById("toast");
 
-const fileEl=document.getElementById("file");
-const tourEl=document.getElementById("tour");
-const sourceEl=document.getElementById("source");
-const sourceHintEl=document.getElementById("sourceHint");
-
-const holdMinEl=document.getElementById("holdMin");
-const holdHintEl=document.getElementById("holdHint");
-const minBreakEl=document.getElementById("minBreak");
-const minCombinedEl=document.getElementById("minCombined");
-
-const exportBtn=document.getElementById("export");
-const toast=document.getElementById("toast");
-
-let LAST_RENDERED_MATCHES = [];
+let LAST_ROWS = [];
 
 let toastTimer=null;
 function showToast(msg){
@@ -231,61 +197,9 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove("show"), 900);
 }
 
-function rebuildHoldDropdown(){
-  const preset=HOLD_PRESETS[tourEl.value];
-  holdMinEl.innerHTML="";
-  preset.values.forEach(v=>{
-    const opt=document.createElement("option");
-    opt.value=v;
-    opt.textContent=v+"%";
-    holdMinEl.appendChild(opt);
-  });
-  holdMinEl.value=preset.def;
-  holdHintEl.textContent=preset.label;
-}
-tourEl.addEventListener("change",rebuildHoldDropdown);
-rebuildHoldDropdown();
-
-function updateSourceHint(){
-  if(sourceEl.value==="SPW_RPW"){
-    sourceHintEl.textContent="Uses SPW/RPW matchup → point p on serve → Markov hold% (then break is complement of opponent hold).";
-  }else{
-    sourceHintEl.textContent="Uses SH% + OpH% (break=100−OpH) and combines them by matchup: Hold(A|B)=avg(H_A, OpH_B), Break(A|B)=avg(Brk_A, 100−H_B).";
-  }
-}
-sourceEl.addEventListener("change", updateSourceHint);
-updateSourceHint();
-
-/* ------------------ helpers ------------------ */
 function num(x){
   const v = parseFloat(String(x??"").replace("%","").replace(",",".").trim());
   return Number.isFinite(v) ? v : NaN;
-}
-function finite(x){ return Number.isFinite(x); }
-function avg2(a,b){
-  const A = finite(a), B = finite(b);
-  if(A && B) return (a+b)/2;
-  if(A) return a;
-  if(B) return b;
-  return NaN;
-}
-
-const pctToDec = p => p/100;
-const decToPct = d => d*100;
-
-// Markov hold prob from point win prob on serve p
-function holdFromPointP(p){
-  if(!(p>0 && p<1)) return NaN;
-  const q = 1 - p;
-  const first = Math.pow(p,4) * (1 + 4*q + 10*q*q);
-  const deuceReach = 20 * Math.pow(p,3) * Math.pow(q,3);
-  const pWinFromDeuce = (p*p) / (1 - 2*p*q);
-  return first + deuceReach * pWinFromDeuce;
-}
-
-// pServe(A vs B) = average of A's SPW and (1 - B's RPW)
-function matchupPointServe(spwA_dec, rpwB_dec){
-  return (spwA_dec + (1 - rpwB_dec)) / 2;
 }
 
 function pick(row, names){
@@ -296,24 +210,97 @@ function pick(row, names){
 }
 
 function extract(row){
-  // names
   const player = pick(row, ["Player","player","Name","name"]);
+  const sh = pick(row, ["SH %","SH%","Hold","Hold%","Hold %"]);
+  const oph = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
 
-  // SPW/RPW (points)
-  const spw  = pick(row, ["SPW %","SPW%","SPW"]);
-  const rpw  = pick(row, ["RPW %","RPW%","RPW"]);
-
-  // Hold/OpH (games)
-  const sh   = pick(row, ["SH %","SH%","Hold","Hold%","Hold %"]);
-  const oph  = pick(row, ["OpH %","OpH%","Opponent Hold","Opponent Hold %","Opp Hold %"]);
+  const odds = pick(row, ["Odds","odds","Price","price","PM Odds","PreMatch Odds","Match Odds","match odds"]);
 
   return {
-    player: String(player??"").trim(),
-    spw: num(spw),
-    rpw: num(rpw),
+    player: String(player ?? "").trim(),
     sh: num(sh),
-    oph: num(oph)
+    oph: num(oph),
+    odds: num(odds)
   };
+}
+
+function updateTourHint(){
+  const t = tourEl.value;
+  tourHintEl.textContent = (t==="MEN")
+    ? "Threshold: SH% ≥ 80"
+    : "Threshold: SH% ≥ 66";
+}
+tourEl.addEventListener("change", updateTourHint);
+updateTourHint();
+
+function thresholds(){
+  return tourEl.value==="MEN" ? { shMin:80 } : { shMin:66 };
+}
+
+function passes(row){
+  const { shMin } = thresholds();
+  if(!row.player) return false;
+  if(!Number.isFinite(row.sh)) return false;
+  if(row.sh < shMin) return false;
+
+  const minO = num(minOddsEl.value);
+  const maxO = num(maxOddsEl.value);
+
+  // Odds filter:
+  // - if odds is present, enforce range
+  // - if odds missing/NaN, we let it through (and show blank odds)
+  if(Number.isFinite(row.odds) && (Number.isFinite(minO) || Number.isFinite(maxO))){
+    if(Number.isFinite(minO) && row.odds < minO) return false;
+    if(Number.isFinite(maxO) && row.odds > maxO) return false;
+  }
+
+  return true;
+}
+
+function render(rows){
+  const thead = document.getElementById("thead");
+  const tbody = document.getElementById("tbody");
+
+  thead.innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th class="right">SH%</th>
+      <th class="right">OpH%</th>
+      <th class="right">Break%</th>
+      <th class="right">Odds</th>
+      <th></th>
+    </tr>
+  `;
+  tbody.innerHTML = "";
+
+  rows.forEach(r=>{
+    const breakPct = Number.isFinite(r.oph) ? (100 - r.oph) : NaN;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><div class="player">${escapeHtml(r.player)}</div></td>
+      <td class="right">${Number.isFinite(r.sh) ? r.sh.toFixed(1) : ""}</td>
+      <td class="right">${Number.isFinite(r.oph) ? r.oph.toFixed(1) : ""}</td>
+      <td class="right">${Number.isFinite(breakPct) ? breakPct.toFixed(1) : ""}</td>
+      <td class="right">${Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""}</td>
+      <td><span class="pill" data-copy="${encodeURIComponent(r.player)}">⚡</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("[data-copy]").forEach(el=>{
+    el.addEventListener("click", async ()=>{
+      const name = decodeURIComponent(el.getAttribute("data-copy") || "");
+      try{
+        await navigator.clipboard.writeText(name);
+        showToast("Copied");
+      }catch(e){
+        showToast("Copy failed");
+      }
+    });
+  });
+
+  document.getElementById("out").style.display = "block";
 }
 
 function escapeHtml(s){
@@ -325,271 +312,71 @@ function escapeHtml(s){
     .replace(/'/g,"&#039;");
 }
 
-async function copyText(text){
-  try{
-    await navigator.clipboard.writeText(text);
-    showToast("Copied");
-  }catch(e){
-    showToast("Copy failed");
-  }
-}
-
-/* ------------------ matchup calculators ------------------ */
-function computeSPW_RPW(a,b){
-  // requires both players have spw/rpw
-  const usable = finite(a.spw) && finite(a.rpw) && finite(b.spw) && finite(b.rpw);
-  if(!usable){
-    // fallback if SPW/RPW missing: use SH/OpH if available directly (non-matchup)
-    return computeFallbackFromHoldBreak(a,b);
-  }
-
-  const pServeA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
-  const pServeB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
-
-  const holdA = decToPct(holdFromPointP(pServeA));
-  const holdB = decToPct(holdFromPointP(pServeB));
-
-  // In SPW/RPW mode, break is complement of opponent hold (identity)
-  const breakA = 100 - holdB;
-  const breakB = 100 - holdA;
-
-  return {
-    a: { ...a, opponent:b.player, predHold:holdA, predBreak:breakA, predCombined:holdA+breakA, mode:"SPW_RPW" },
-    b: { ...b, opponent:a.player, predHold:holdB, predBreak:breakB, predCombined:holdB+breakB, mode:"SPW_RPW" }
-  };
-}
-
-function computeHOLD_BREAK(a,b){
-  // define break rates from OpH
-  // Brk_A = 100 - OpH_A
-  const brkA = finite(a.oph) ? (100 - a.oph) : NaN;
-  const brkB = finite(b.oph) ? (100 - b.oph) : NaN;
-
-  // Hold(A|B) = avg(H_A, OpH_B) because OpH_B = how often opponents hold vs B
-  const holdA = avg2(a.sh, b.oph);
-  const holdB = avg2(b.sh, a.oph);
-
-  // Break(A|B) = avg(Brk_A, 100 - H_B)
-  const breakA = avg2(brkA, finite(b.sh) ? (100 - b.sh) : NaN);
-  const breakB = avg2(brkB, finite(a.sh) ? (100 - a.sh) : NaN);
-
-  const combA = (finite(holdA) && finite(breakA)) ? (holdA + breakA) : NaN;
-  const combB = (finite(holdB) && finite(breakB)) ? (holdB + breakB) : NaN;
-
-  return {
-    a: { ...a, opponent:b.player, predHold:holdA, predBreak:breakA, predCombined:combA, mode:"HOLD_BREAK" },
-    b: { ...b, opponent:a.player, predHold:holdB, predBreak:breakB, predCombined:combB, mode:"HOLD_BREAK" }
-  };
-}
-
-// Fallback for when SPW/RPW missing but user chose SPW/RPW:
-// use non-matchup hold/break if available, otherwise NaN.
-// (keeps the app working rather than dropping matches)
-function computeFallbackFromHoldBreak(a,b){
-  const holdA = a.sh;
-  const holdB = b.sh;
-  const breakA = finite(b.sh) ? (100 - b.sh) : (finite(a.oph) ? (100 - a.oph) : NaN);
-  const breakB = finite(a.sh) ? (100 - a.sh) : (finite(b.oph) ? (100 - b.oph) : NaN);
-
-  const combA = (finite(holdA) && finite(breakA)) ? (holdA + breakA) : NaN;
-  const combB = (finite(holdB) && finite(breakB)) ? (holdB + breakB) : NaN;
-
-  return {
-    a: { ...a, opponent:b.player, predHold:holdA, predBreak:breakA, predCombined:combA, mode:"FALLBACK" },
-    b: { ...b, opponent:a.player, predHold:holdB, predBreak:breakB, predCombined:combB, mode:"FALLBACK" }
-  };
-}
-
-/* ------------------ couplets → matches ------------------ */
-function buildMatches(parsedRows){
-  const rows = (parsedRows||[]).map(extract);
-  const matches = [];
-
-  for(let i=0;i<rows.length;i+=2){
-    const a = rows[i];
-    const b = rows[i+1];
-
-    if(!a || !a.player) continue;
-    if(!b || !b.player){
-      // single-row leftover (rare)
-      matches.push({ a:{...a, opponent:"", predHold:NaN, predBreak:NaN, predCombined:NaN, mode:"NA"}, b:null, idx:i });
-      continue;
-    }
-
-    const computed = (sourceEl.value==="HOLD_BREAK")
-      ? computeHOLD_BREAK(a,b)
-      : computeSPW_RPW(a,b);
-
-    matches.push({ ...computed, idx:i });
-  }
-  return matches;
-}
-
-/* ------------------ filtering ------------------ */
-function matchPasses(m){
-  const holdMin = num(holdMinEl.value);
-  const minBrk  = num(minBreakEl.value);
-  const minComb = num(minCombinedEl.value);
-
-  const passSide = (s)=>{
-    if(!s) return false;
-    if(!finite(s.predHold) || !finite(s.predBreak) || !finite(s.predCombined)) return false;
-    if(s.predHold < holdMin) return false;
-    if(s.predBreak < minBrk) return false;
-    if(s.predCombined < minComb) return false;
-    return true;
-  };
-
-  // match-level display: if either player passes, show both
-  return passSide(m.a) || passSide(m.b);
-}
-
-/* ------------------ render ------------------ */
-function render(matches){
-  const thead=document.getElementById("thead");
-  const tbody=document.getElementById("tbody");
-
-  thead.innerHTML = `
-    <tr>
-      <th>Match</th>
-      <th></th>
-      <th class="right">Pred Hold</th>
-      <th class="right">Pred Break</th>
-      <th class="right">Pred Combined</th>
-      <th class="right">SPW</th>
-      <th class="right">RPW</th>
-      <th class="right">SH</th>
-      <th class="right">OpH</th>
-      <th>Mode</th>
-    </tr>`;
-  tbody.innerHTML="";
-
-  matches.forEach(m=>{
-    const title = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
-    const trH = document.createElement("tr");
-    trH.className = "match-row";
-    trH.innerHTML = `<td colspan="10"><div class="match-title">${escapeHtml(title)}</div></td>`;
-    tbody.appendChild(trH);
-
-    [m.a, m.b].forEach(s=>{
-      if(!s) return;
-      const tr=document.createElement("tr");
-      tr.innerHTML = `
-        <td>
-          <div class="player">${escapeHtml(s.player)}</div>
-          ${s.opponent ? `<div class="muted">vs ${escapeHtml(s.opponent)}</div>` : ``}
-        </td>
-        <td><span class="pill" data-copy="${encodeURIComponent(s.player)}">⚡</span></td>
-        <td class="right">${finite(s.predHold) ? s.predHold.toFixed(1) : ""}</td>
-        <td class="right">${finite(s.predBreak) ? s.predBreak.toFixed(1) : ""}</td>
-        <td class="right">${finite(s.predCombined) ? s.predCombined.toFixed(1) : ""}</td>
-        <td class="right">${finite(s.spw) ? s.spw.toFixed(1) : ""}</td>
-        <td class="right">${finite(s.rpw) ? s.rpw.toFixed(1) : ""}</td>
-        <td class="right">${finite(s.sh) ? s.sh.toFixed(1) : ""}</td>
-        <td class="right">${finite(s.oph) ? s.oph.toFixed(1) : ""}</td>
-        <td>${escapeHtml(s.mode || "")}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  });
-
-  tbody.querySelectorAll("[data-copy]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const name = decodeURIComponent(el.getAttribute("data-copy") || "");
-      copyText(name);
-    });
-  });
-
-  document.getElementById("out").style.display="block";
-}
-
-/* ------------------ export ------------------ */
-function toExportRows(matches){
-  const rows = [];
-  matches.forEach(m=>{
-    const matchName = m.b ? `${m.a.player} vs ${m.b.player}` : `${m.a.player}`;
-    [m.a, m.b].forEach(s=>{
-      if(!s) return;
-      rows.push({
-        Match: matchName,
-        Player: s.player,
-        Opponent: s.opponent || "",
-        "Pred Hold": finite(s.predHold) ? s.predHold.toFixed(1) : "",
-        "Pred Break": finite(s.predBreak) ? s.predBreak.toFixed(1) : "",
-        "Pred Combined": finite(s.predCombined) ? s.predCombined.toFixed(1) : "",
-        "SPW %": finite(s.spw) ? s.spw.toFixed(1) : "",
-        "RPW %": finite(s.rpw) ? s.rpw.toFixed(1) : "",
-        "SH %": finite(s.sh) ? s.sh.toFixed(1) : "",
-        "OpH %": finite(s.oph) ? s.oph.toFixed(1) : "",
-        Mode: s.mode || ""
-      });
-    });
-  });
-  return rows;
-}
-
 function downloadCSV(rows, filename){
   if(!rows.length){ showToast("Nothing to export"); return; }
   const headers = Object.keys(rows[0]);
-  const escapeCell = (v)=>{
+  const esc = (v)=>{
     const s = String(v ?? "");
-    if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
-    return s;
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
   };
-  const lines = [];
-  lines.push(headers.map(escapeCell).join(","));
-  rows.forEach(r=>{
-    lines.push(headers.map(h=>escapeCell(r[h])).join(","));
-  });
-  const csv = lines.join("\n");
-  const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+  const lines = [headers.map(esc).join(",")];
+  rows.forEach(r=>lines.push(headers.map(h=>esc(r[h])).join(",")));
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
 }
 
-document.getElementById("export").addEventListener("click", ()=>{
-  if(!LAST_RENDERED_MATCHES.length){ showToast("Run filter first"); return; }
-  const tour = tourEl.value === "WTA" ? "WTA" : "ATP_CH";
-  const holdMin = holdMinEl.value;
-  const brkMin = minBreakEl.value;
-  const comb = minCombinedEl.value;
-  const src = sourceEl.value === "HOLD_BREAK" ? "HB" : "SPW";
-  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
-  downloadCSV(
-    toExportRows(LAST_RENDERED_MATCHES),
-    `PM_results_${tour}_${src}_H${holdMin}_B${brkMin}_C${comb}_${stamp}.csv`
-  );
-});
+function exportRows(rows){
+  return rows.map(r=>{
+    const breakPct = Number.isFinite(r.oph) ? (100 - r.oph) : "";
+    return {
+      Tour: tourEl.value==="MEN" ? "MEN" : "WOMEN",
+      Player: r.player,
+      "SH%": Number.isFinite(r.sh) ? r.sh.toFixed(1) : "",
+      "OpH%": Number.isFinite(r.oph) ? r.oph.toFixed(1) : "",
+      "Break%": Number.isFinite(breakPct) ? (+breakPct).toFixed(1) : "",
+      Odds: Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""
+    };
+  });
+}
 
-/* ------------------ run ------------------ */
-document.getElementById("run").onclick=()=>{
+document.getElementById("run").onclick = ()=>{
   const f = fileEl.files && fileEl.files[0];
   if(!f){ showToast("Choose a CSV"); return; }
 
-  Papa.parse(f,{
+  Papa.parse(f, {
     header:true,
     skipEmptyLines:true,
     complete:(res)=>{
-      const matches = buildMatches(res.data || []);
-      const filteredMatches = matches.filter(matchPasses);
+      const all = (res.data || []).map(extract);
+      const filtered = all.filter(passes);
 
-      LAST_RENDERED_MATCHES = filteredMatches;
-      exportBtn.disabled = filteredMatches.length === 0;
+      LAST_ROWS = filtered;
+      exportBtn.disabled = filtered.length === 0;
 
-      render(filteredMatches);
-      showToast(filteredMatches.length ? "Done" : "No matches");
+      const { shMin } = thresholds();
+      statusLine.textContent =
+        `Filtered ${filtered.length} players — SH% ≥ ${shMin}` +
+        `; odds ${minOddsEl.value}–${maxOddsEl.value} (if odds column exists).`;
+
+      render(filtered);
+      showToast(filtered.length ? "Done" : "No players");
     },
-    error: ()=>{
+    error:()=>{
       showToast("Parse failed");
     }
   });
 };
+
+exportBtn.addEventListener("click", ()=>{
+  if(!LAST_ROWS.length){ showToast("Run filter first"); return; }
+  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
+  const tour = tourEl.value==="MEN" ? "MEN" : "WOMEN";
+  downloadCSV(exportRows(LAST_ROWS), `PM_holdfilter_${tour}_${stamp}.csv`);
+});
 
 // keep PWA installable
 if ("serviceWorker" in navigator){
