@@ -13,17 +13,8 @@
         background:rgba(0,0,0,.25);color:#fff;font-size:16px}
   #status{margin-top:10px;opacity:.8;font-size:13px;line-height:1.35}
 
-  /* IMPORTANT: give the table area height so it shows on mobile */
-  .wrap{
-    margin-top:12px;
-    border:1px solid rgba(255,255,255,.10);
-    border-radius:16px;
-    overflow:auto;
-    display:none;
-    max-height:65vh;
-    background:rgba(0,0,0,.18);
-  }
-
+  .wrap{margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:16px;
+        overflow:auto;display:none;max-height:65vh;background:rgba(0,0,0,.18)}
   table{border-collapse:collapse;min-width:900px;width:100%}
   th,td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
   th{font-size:12px;opacity:.7;text-align:left;position:sticky;top:0;background:#101427}
@@ -80,7 +71,6 @@ function pServe(spwA, rpwB){
   return clamp(((spwA/100) + ((100-rpwB)/100))/2);
 }
 
-// Normalize headers to avoid weird spaces / % signs
 const hk=s=>s.toString().trim().toLowerCase().replace(/%/g,"").replace(/[^a-z0-9]+/g,"");
 
 async function parseFile(file){
@@ -105,7 +95,6 @@ $("file").addEventListener("change", async (e)=>{
     const fields = res.meta?.fields || [];
     if(!fields.length){ $("status").textContent="No headers found."; return; }
 
-    // Map normalised headers -> actual header name
     const map=new Map(fields.map(f=>[hk(f),f]));
     const kPlayer = map.get("player") || map.get("name");
     const kOdds   = map.get("odds") || map.get("price");
@@ -118,27 +107,34 @@ $("file").addEventListener("change", async (e)=>{
       return;
     }
 
-    // Clean rows: must have player + numeric SPW/RPW
+    // Clean rows
     const rows = (res.data||[]).map(r=>{
       const player=(r[kPlayer]??"").toString().trim();
       if(!player) return null;
-      if(/^(surface|period|tour|match type|time)\s*:/i.test(player)) return null; // drop footer
+      if(/^(surface|period|tour|match type|time)\s*:/i.test(player)) return null; // footer
       const spw=n(r[kSPW]), rpw=n(r[kRPW]);
       if(!Number.isFinite(spw) || !Number.isFinite(rpw)) return null;
       const odds = kOdds ? n(r[kOdds]) : NaN;
       return {player,odds,spw,rpw};
     }).filter(Boolean);
 
-    // Compute Pred Hold using opponent RPW from next row (couplets)
-    const out = rows.map((a,i)=>{
+    if(rows.length < 2){
+      $("status").textContent = `Loaded ${rows.length} rows. Need at least 2 (a couplet).`;
+      return;
+    }
+
+    // Build output by couplets (A,B)
+    const out = [];
+    for(let i=0;i<rows.length-1;i+=2){
+      const a = rows[i];
       const b = rows[i+1];
-      let predHold = NaN;
-      if(b && Number.isFinite(b.rpw)){
-        const p = pServe(a.spw, b.rpw);
-        predHold = holdFromPoint(p)*100;
-      }
-      return {...a, predHold};
-    });
+
+      const pA = pServe(a.spw, b.rpw);
+      const pB = pServe(b.spw, a.rpw);
+
+      out.push({...a, predHold: holdFromPoint(pA)*100});
+      out.push({...b, predHold: holdFromPoint(pB)*100});
+    }
 
     $("tb").innerHTML = out.map(r=>`
       <tr>
@@ -146,16 +142,16 @@ $("file").addEventListener("change", async (e)=>{
         <td class="num">${Number.isFinite(r.odds)?r.odds.toFixed(2):""}</td>
         <td class="num">${r.spw.toFixed(1)}</td>
         <td class="num">${r.rpw.toFixed(1)}</td>
-        <td class="num">${Number.isFinite(r.predHold)?r.predHold.toFixed(1):""}</td>
+        <td class="num">${r.predHold.toFixed(1)}</td>
       </tr>
     `).join("");
 
-    if(out.length){
-      // FORCE it visible on mobile (instead of style.display = "")
-      $("wrap").style.display = "block";
-    }
+    $("wrap").style.display = "block";
 
-    $("status").textContent = `Loaded ${out.length} rows. Pred Hold uses opponent RPW from the row below.`;
+    const dropped = rows.length % 2 === 1 ? 1 : 0;
+    $("status").textContent =
+      `Loaded ${rows.length} rows. Calculated Pred Hold for both players per couplet.` +
+      (dropped ? ` (Dropped last orphan row.)` : ``);
 
   }catch(err){
     $("status").textContent = `Error: ${err?.message || err}`;
