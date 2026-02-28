@@ -1,202 +1,148 @@
-<!doctype html><html><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PM</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pred Hold</title>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
-body{margin:0;font-family:system-ui;background:#0b0f1f;color:#fff;padding:18px}
-h1{margin:0 0 12px;font-size:44px}
-.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:14px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
-label{font-size:12px;opacity:.7;margin:6px 6px 4px;display:block}
-input,select{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:14px;padding:10px 12px}
-button{border:0;border-radius:14px;padding:11px 14px;font-weight:800;color:#fff;background:#7c3aed;cursor:pointer}
-button:disabled{opacity:.5;cursor:not-allowed}
-#status{margin-top:10px;opacity:.75;font-size:13px}
-.wrap{margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:16px;overflow:auto;display:none}
-table{border-collapse:collapse;min-width:980px;width:100%}
-th,td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
-th{font-size:12px;opacity:.7;text-align:left;position:sticky;top:0;background:#101427}
-.num{text-align:right;font-variant-numeric:tabular-nums}
-.copy{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);padding:6px 10px;border-radius:999px}
-.toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.12);padding:10px 14px;border-radius:999px;opacity:0;transition:.15s;pointer-events:none}
-.toast.show{opacity:1}
-</style></head><body>
-<h1>PM</h1>
+  body{margin:0;font-family:system-ui;background:#0b0f1f;color:#fff;padding:16px}
+  h1{margin:0 0 12px;font-size:44px}
+  .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:14px}
+  input{width:100%;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);
+        background:rgba(0,0,0,.25);color:#fff;font-size:16px}
+  #status{margin-top:10px;opacity:.75;font-size:13px}
+  .wrap{margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:16px;overflow:auto;display:none}
+  table{border-collapse:collapse;min-width:900px;width:100%}
+  th,td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
+  th{font-size:12px;opacity:.7;text-align:left;position:sticky;top:0;background:#101427}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .player{white-space:normal;font-weight:800}
+</style>
+</head>
+<body>
+<h1>Pred Hold</h1>
+
 <div class="card">
-  <div class="row">
-    <div><label>File</label><input id="f" type="file" accept=".csv,text/csv"></div>
-    <div><label>Tour</label>
-      <select id="tour"><option>WTA</option><option>ATP</option><option>CH</option></select>
-    </div>
-    <div><label>Min SH%</label><input id="minH" type="number" step="0.1" value="66"></div>
-    <div><label>Min odds</label><input id="minO" type="number" step="0.01" value="1.15"></div>
-    <div><label>Max odds</label><input id="maxO" type="number" step="0.01" value="1.70"></div>
-    <button id="run">Run</button>
-    <button id="exp" disabled>Export</button>
-  </div>
-  <div id="status">Load a TSV/CSV and run.</div>
+  <input id="file" type="file" accept=".csv,text/csv" />
+  <div id="status">Upload your file.</div>
 
   <div id="wrap" class="wrap">
-    <table><thead><tr>
-      <th>Copy</th><th>Sched</th><th>Player</th>
-      <th class="num">Odds</th><th class="num">SH%</th>
-      <th class="num">SPW%</th><th class="num">RPW%</th>
-      <th class="num">PredHold%</th><th class="num">MatchWin%</th>
-    </tr></thead><tbody id="tb"></tbody></table>
+    <table>
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th class="num">Odds</th>
+          <th class="num">SPW%</th>
+          <th class="num">RPW%</th>
+          <th class="num">Pred Hold%</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
   </div>
 </div>
-<div id="toast" class="toast">Copied</div>
+
 <script>
 const $=id=>document.getElementById(id);
-const toast=m=>{const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),850)}
-const n=v=>{v=(v??"").toString().trim(); if(!v) return NaN; v=v.replace("%","").replace(",",""); const x=+v; return Number.isFinite(x)?x:NaN}
-const hk=s=>s.toString().trim().toLowerCase().replace(/%/g,"").replace(/[^a-z0-9]+/g,""); // header key
 const clamp=p=>Math.min(.999999,Math.max(.000001,p));
-function holdFromPoint(p){p=clamp(p); const q=1-p; const pre=p**4*(1+4*q+10*q*q); const d=20*(p**3)*(q**3); const from=(p*p)/(1-2*p*q); return pre + d*from;}
-function pServe(spw,oppRpw){return clamp(((spw/100)+((100-oppRpw)/100))/2);}
-// Short match win approximation:
-// 1) compute set win approx from hold edge using logistic on (p_game_on_serve - p_game_on_return)
-// 2) BO3 from set win
-function matchWinApprox(hA,hB){
-  const pA_onA=hA, pA_onB=1-hB;
-  const edge = (pA_onA - (1-pA_onB)); // = hA - hB
-  const pSet = 1/(1+Math.exp(-6.5*edge)); // tuned slope; stable ranking
-  const pMatch = pSet*pSet*(3-2*pSet);
-  return pMatch;
+const n=v=>{
+  v=(v??"").toString().trim();
+  if(!v) return NaN;
+  v=v.replace("%","").replace(",",".");
+  const x=+v;
+  return Number.isFinite(x)?x:NaN;
+};
+
+// Hold% from point win p (advantage game)
+function holdFromPoint(p){
+  p=clamp(p); const q=1-p;
+  const pre=p**4*(1+4*q+10*q*q);
+  const d=20*(p**3)*(q**3);
+  const from=(p*p)/(1-2*p*q);
+  return pre + d*from;
 }
 
-$("tour").addEventListener("change",e=>{
-  $("minH").value = e.target.value==="WTA" ? 66 : (e.target.value==="CH" ? 78 : 80);
-});
+// predicted serve-point p = mean(SPW_A, 1 - RPW_B)
+function pServe(spwA, rpwB){
+  return clamp(((spwA/100) + ((100-rpwB)/100))/2);
+}
+
+// Normalize headers to avoid invisible spaces / % signs
+const hk=s=>s.toString().trim().toLowerCase().replace(/%/g,"").replace(/[^a-z0-9]+/g,"");
 
 async function parseFile(file){
-  const tryParse = (delim)=>new Promise((resolve,reject)=>{
+  const parse = (delim)=>new Promise((resolve,reject)=>{
     Papa.parse(file,{header:true,skipEmptyLines:true,delimiter:delim,complete:resolve,error:reject});
   });
-  let r = await tryParse(""); // auto
-  if((r.meta?.fields||[]).length<=1) r = await tryParse("\t"); // TSV fallback
+  let r = await parse("");                 // auto
+  if((r.meta?.fields||[]).length<=1) r = await parse("\t"); // TSV fallback
   return r;
 }
 
-let last=[];
-$("run").onclick=async()=>{
-  const file=$("f").files?.[0];
-  if(!file){$("status").textContent="Choose a file first."; return;}
-  $("run").disabled=true; $("exp").disabled=true;
+$("file").addEventListener("change", async (e)=>{
+  const file=e.target.files?.[0];
+  if(!file) return;
   $("status").textContent="Parsing…";
+  $("wrap").style.display="none";
+  $("tb").innerHTML="";
+
   try{
-    const res=await parseFile(file);
-    const fields=res.meta?.fields||[];
-    if(!fields.length){$("status").textContent="No headers found."; return;}
+    const res = await parseFile(file);
+    const fields = res.meta?.fields || [];
+    if(!fields.length){ $("status").textContent="No headers found."; return; }
 
+    // Map normalised headers -> actual header name
     const map=new Map(fields.map(f=>[hk(f),f]));
-    const kSched = map.get("schedtime") || map.get("sched") || map.get("time");
-    const kPlayer= map.get("player") || map.get("name");
-    const kOdds  = map.get("odds") || map.get("price");
-    const kSH    = map.get("sh") || map.get("hold") || map.get("servicehold");
-    const kSPW   = map.get("spw");
-    const kRPW   = map.get("rpw");
+    const kPlayer = map.get("player") || map.get("name");
+    const kOdds   = map.get("odds") || map.get("price");
+    const kSPW    = map.get("spw");
+    const kRPW    = map.get("rpw");
 
-    if(!kPlayer || !kSH || !kSPW || !kRPW){
-      $("status").textContent=`Missing columns. Need Player, SH, SPW, RPW. Found: ${fields.slice(0,10).join(" | ")}`;
+    if(!kPlayer || !kSPW || !kRPW){
+      $("status").textContent=`Missing columns. Need Player, SPW, RPW. Found: ${fields.slice(0,12).join(" | ")}`;
       return;
     }
 
-    const minH=n($("minH").value);
-    const minO=n($("minO").value), maxO=n($("maxO").value);
-    const useOdds = Number.isFinite(minO) || Number.isFinite(maxO);
-
-    // Clean match rows (drop footer)
-    const rows=(res.data||[]).map(r=>{
+    // Clean rows: must have player + numeric SPW/RPW
+    const rows = (res.data||[]).map(r=>{
       const player=(r[kPlayer]??"").toString().trim();
-      const sh=n(r[kSH]), spw=n(r[kSPW]), rpw=n(r[kRPW]);
-      const odds=kOdds? n(r[kOdds]) : NaN;
-      const sched=kSched? (r[kSched]??"").toString().trim() : "";
-      if(!player || !Number.isFinite(sh)) return null;
-      if(/^(surface|period|tour|matchtype|time)\s*:/i.test(player)) return null;
-      return {sched,player,odds,sh,spw,rpw};
+      if(!player) return null;
+      if(/^(surface|period|tour|match type|time)\s*:/i.test(player)) return null; // drop footer
+      const spw=n(r[kSPW]), rpw=n(r[kRPW]);
+      if(!Number.isFinite(spw) || !Number.isFinite(rpw)) return null;
+      const odds = kOdds ? n(r[kOdds]) : NaN;
+      return {player,odds,spw,rpw};
     }).filter(Boolean);
 
-    // Couplets: i vs i+1
-    const out=[];
-    for(let i=0;i<rows.length;i++){
-      const a=rows[i], b=rows[i+1];
-      let predHold=NaN, mw=NaN;
-      if(b && Number.isFinite(a.spw) && Number.isFinite(b.rpw)){
-        const pA=pServe(a.spw,b.rpw);
-        const hA=holdFromPoint(pA);
-        predHold=hA*100;
-        if(Number.isFinite(b.spw) && Number.isFinite(a.rpw)){
-          const pB=pServe(b.spw,a.rpw);
-          const hB=holdFromPoint(pB);
-          mw = matchWinApprox(hA,hB)*100;
-        }
+    // Compute Pred Hold using opponent RPW from next row (couplets)
+    const out = rows.map((a,i)=>{
+      const b = rows[i+1];
+      let predHold = NaN;
+      if(b && Number.isFinite(b.rpw)){
+        const p = pServe(a.spw, b.rpw);
+        predHold = holdFromPoint(p)*100;
       }
-      // filters
-      if(a.sh < minH) continue;
-      if(useOdds){
-        if(!Number.isFinite(a.odds)) continue;
-        if(Number.isFinite(minO) && a.odds<minO) continue;
-        if(Number.isFinite(maxO) && a.odds>maxO) continue;
-      }
-      out.push({...a,predHold,mw});
-    }
-
-    last=out;
-    $("tb").innerHTML=out.map(r=>`
-      <tr>
-        <td><button class="copy" data-name="${encodeURIComponent(r.player)}">📋</button></td>
-        <td>${r.sched||""}</td>
-        <td style="white-space:normal;font-weight:800">${r.player}</td>
-        <td class="num">${Number.isFinite(r.odds)?r.odds.toFixed(2):""}</td>
-        <td class="num">${r.sh.toFixed(1)}</td>
-        <td class="num">${Number.isFinite(r.spw)?r.spw.toFixed(1):""}</td>
-        <td class="num">${Number.isFinite(r.rpw)?r.rpw.toFixed(1):""}</td>
-        <td class="num">${Number.isFinite(r.predHold)?r.predHold.toFixed(1):""}</td>
-        <td class="num">${Number.isFinite(r.mw)?r.mw.toFixed(1):""}</td>
-      </tr>`).join("");
-
-    $("wrap").style.display= out.length ? "" : "none";
-    $("exp").disabled = out.length===0;
-    $("status").textContent = `Filtered ${out.length} players. (PredHold uses opponent row below.)`;
-
-    // bind copy
-    document.querySelectorAll("button[data-name]").forEach(b=>{
-      b.onclick=async()=>{
-        const name=decodeURIComponent(b.dataset.name);
-        try{await navigator.clipboard.writeText(name); toast("Copied");}
-        catch{toast("Copy blocked");}
-      };
+      return {...a, predHold};
     });
 
-  }catch(e){
-    $("status").textContent = `Error: ${e?.message||e}`;
-  } finally {
-    $("run").disabled=false;
-  }
-};
+    $("tb").innerHTML = out.map(r=>`
+      <tr>
+        <td class="player">${r.player}</td>
+        <td class="num">${Number.isFinite(r.odds)?r.odds.toFixed(2):""}</td>
+        <td class="num">${r.spw.toFixed(1)}</td>
+        <td class="num">${r.rpw.toFixed(1)}</td>
+        <td class="num">${Number.isFinite(r.predHold)?r.predHold.toFixed(1):""}</td>
+      </tr>
+    `).join("");
 
-$("exp").onclick=()=>{
-  if(!last.length) return;
-  const rows=last.map(r=>({
-    "Sched Time": r.sched,
-    "Player": r.player,
-    "Odds": Number.isFinite(r.odds)?r.odds.toFixed(2):"",
-    "SH %": r.sh.toFixed(1),
-    "SPW %": Number.isFinite(r.spw)?r.spw.toFixed(1):"",
-    "RPW %": Number.isFinite(r.rpw)?r.rpw.toFixed(1):"",
-    "Pred Hold %": Number.isFinite(r.predHold)?r.predHold.toFixed(1):"",
-    "Match Win %": Number.isFinite(r.mw)?r.mw.toFixed(1):"",
-  }));
-  const csv = Papa.unparse(rows);
-  const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
-  const url = URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  const d=new Date(), stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
-  a.href=url; a.download=`pm_${stamp}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-  toast("Exported");
-};
+    $("wrap").style.display = out.length ? "" : "none";
+    $("status").textContent = `Loaded ${out.length} rows. Pred Hold uses opponent RPW from the row below.`;
+
+  }catch(err){
+    $("status").textContent = `Error: ${err?.message || err}`;
+  }
+});
 </script>
-</body></html>
+</body>
+</html>
