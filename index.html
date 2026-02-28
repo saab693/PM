@@ -137,6 +137,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
       <div>
         <div class="label">Min hold % (SH%)</div>
         <input id="minHold" type="number" step="0.1" value="80">
+        <div class="small">Filter is still based on SH%. Pred Hold (Markov) is shown for info.</div>
       </div>
 
       <div class="row grid2">
@@ -155,7 +156,7 @@ tbody td{padding:12px;border-bottom:1px solid rgba(255,255,255,.06);white-space:
         <button class="btn secondary" id="export" disabled>Export Results (CSV)</button>
       </div>
 
-      <div class="small" id="status">Ready.</div>
+      <div class="small" id="status">Ready. Assumes rows are in couplets for Pred Hold (Markov).</div>
     </div>
 
     <div id="out" class="table-wrap" style="display:none">
@@ -196,6 +197,7 @@ function num(x){
   const v = parseFloat(String(x??"").replace("%","").replace(",",".").trim());
   return Number.isFinite(v) ? v : NaN;
 }
+function finite(x){ return Number.isFinite(x); }
 
 function pick(row, names){
   for(const n of names){
@@ -203,7 +205,6 @@ function pick(row, names){
   }
   return undefined;
 }
-
 function escapeHtml(s){
   return String(s??"")
     .replace(/&/g,"&amp;")
@@ -226,36 +227,78 @@ tourEl.addEventListener("change", updateTourDefaults);
 minHoldEl.addEventListener("input", ()=>{ minHoldEl.dataset.userSet="1"; });
 updateTourDefaults();
 
+/* Markov hold from point win prob p */
+function holdFromPointP(p){
+  if(!(p>0 && p<1)) return NaN;
+  const q = 1 - p;
+  const first = Math.pow(p,4) * (1 + 4*q + 10*q*q);
+  const deuceReach = 20 * Math.pow(p,3) * Math.pow(q,3);
+  const pWinFromDeuce = (p*p) / (1 - 2*p*q);
+  return first + deuceReach * pWinFromDeuce;
+}
+const pctToDec = p => p/100;
+const decToPct = d => d*100;
+
+/* Serve point p = average(SPW_A, 1 - RPW_B) */
+function matchupPointServe(spwA, rpwB){
+  return (spwA + (1 - rpwB)) / 2;
+}
+
 function extract(row){
   const player = pick(row, ["Player","player","Name","name"]);
   const sh = pick(row, ["SH %","SH%","Hold","Hold%","Hold %"]);
   const odds = pick(row, ["Odds","odds","Price","price","PM Odds","PreMatch Odds","Match Odds","match odds"]);
+  const spw = pick(row, ["SPW %","SPW%","SPW"]);
+  const rpw = pick(row, ["RPW %","RPW%","RPW"]);
+
   return {
     player: String(player ?? "").trim(),
     sh: num(sh),
-    odds: num(odds)
+    odds: num(odds),
+    spw: num(spw),
+    rpw: num(rpw),
+    predHold: NaN // filled later from couplets
   };
 }
 
 function oddsPass(odds){
   const minO = num(minOddsEl.value);
   const maxO = num(maxOddsEl.value);
-
-  // If odds missing, allow through (so blank odds doesn't drop rows)
-  if(!Number.isFinite(odds)) return true;
-
-  if(Number.isFinite(minO) && odds < minO) return false;
-  if(Number.isFinite(maxO) && odds > maxO) return false;
+  if(!finite(odds)) return true; // allow blanks
+  if(finite(minO) && odds < minO) return false;
+  if(finite(maxO) && odds > maxO) return false;
   return true;
 }
 
 function passes(r){
   const minHold = num(minHoldEl.value);
   if(!r.player) return false;
-  if(!Number.isFinite(r.sh)) return false;
+  if(!finite(r.sh)) return false;
   if(r.sh < minHold) return false;
   if(!oddsPass(r.odds)) return false;
   return true;
+}
+
+/* Fill predHold (Markov) using couplets:
+   For row i (A) with opponent row i+1 (B):
+   pServeA = avg(SPW_A, 1 - RPW_B), then Markov hold.
+*/
+function computePredHolds(rows){
+  for(let i=0;i<rows.length;i+=2){
+    const a = rows[i];
+    const b = rows[i+1];
+    if(!a || !b) continue;
+
+    if(finite(a.spw) && finite(b.rpw)){
+      const pA = matchupPointServe(pctToDec(a.spw), pctToDec(b.rpw));
+      a.predHold = decToPct(holdFromPointP(pA));
+    }
+    if(finite(b.spw) && finite(a.rpw)){
+      const pB = matchupPointServe(pctToDec(b.spw), pctToDec(a.rpw));
+      b.predHold = decToPct(holdFromPointP(pB));
+    }
+  }
+  return rows;
 }
 
 function render(rows){
@@ -268,6 +311,9 @@ function render(rows){
       <th>Player</th>
       <th class="right">SH%</th>
       <th class="right">Odds</th>
+      <th class="right">SPW%</th>
+      <th class="right">RPW%</th>
+      <th class="right">Pred Hold%</th>
     </tr>
   `;
   tbody.innerHTML = "";
@@ -277,8 +323,11 @@ function render(rows){
     tr.innerHTML = `
       <td><span class="pill" data-copy="${encodeURIComponent(r.player)}">⚡</span></td>
       <td><div class="player">${escapeHtml(r.player)}</div></td>
-      <td class="right">${Number.isFinite(r.sh) ? r.sh.toFixed(1) : ""}</td>
-      <td class="right">${Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""}</td>
+      <td class="right">${finite(r.sh) ? r.sh.toFixed(1) : ""}</td>
+      <td class="right">${finite(r.odds) ? r.odds.toFixed(2) : ""}</td>
+      <td class="right">${finite(r.spw) ? r.spw.toFixed(1) : ""}</td>
+      <td class="right">${finite(r.rpw) ? r.rpw.toFixed(1) : ""}</td>
+      <td class="right">${finite(r.predHold) ? r.predHold.toFixed(1) : ""}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -320,8 +369,11 @@ function exportRows(rows){
   return rows.map(r=>({
     Tour: tour,
     Player: r.player,
-    "SH%": Number.isFinite(r.sh) ? r.sh.toFixed(1) : "",
-    Odds: Number.isFinite(r.odds) ? r.odds.toFixed(2) : ""
+    "SH%": finite(r.sh) ? r.sh.toFixed(1) : "",
+    Odds: finite(r.odds) ? r.odds.toFixed(2) : "",
+    "SPW%": finite(r.spw) ? r.spw.toFixed(1) : "",
+    "RPW%": finite(r.rpw) ? r.rpw.toFixed(1) : "",
+    "PredHold%": finite(r.predHold) ? r.predHold.toFixed(1) : ""
   }));
 }
 
@@ -333,14 +385,17 @@ document.getElementById("run").onclick = ()=>{
     header:true,
     skipEmptyLines:true,
     complete:(res)=>{
-      const all = (res.data || []).map(extract);
+      // Parse full sheet, compute pred holds on full couplet list, THEN filter
+      let all = (res.data || []).map(extract);
+      all = computePredHolds(all);
+
       const filtered = all.filter(passes);
 
       LAST_ROWS = filtered;
       exportBtn.disabled = filtered.length === 0;
 
       statusEl.textContent =
-        `Filtered ${filtered.length} players (SH ≥ ${minHoldEl.value} ; odds ${minOddsEl.value}–${maxOddsEl.value} if odds present).`;
+        `Filtered ${filtered.length} players (SH ≥ ${minHoldEl.value}; odds ${minOddsEl.value}–${maxOddsEl.value} if odds present). Pred Hold uses SPW/RPW couplets.`;
 
       render(filtered);
       showToast(filtered.length ? "Done" : "No players");
