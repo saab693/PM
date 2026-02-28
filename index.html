@@ -1,376 +1,643 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PM Filter</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PM Filter</title>
 
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-<style>
-:root{
-  --bg:#0b0b12;
-  --card:#151526;
-  --muted:#a7a7c2;
-  --text:#f2f2ff;
-  --line:rgba(255,255,255,.08);
-  --accent:#6a00ff;
-  --accent2:#9b4dff;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  background:linear-gradient(180deg,#1a0033,#0b0b12);
-  color:var(--text);
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-}
-.wrap{max-width:1000px;margin:auto;padding:30px 20px;}
-h1{font-size:48px;margin:0 0 20px;font-weight:800;}
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:20px;
-}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
-label{font-size:12px;color:var(--muted);}
-input,select{
-  background:#1c1c30;
-  border:1px solid var(--line);
-  color:#fff;
-  padding:10px;
-  border-radius:12px;
-  min-width:140px;
-}
-.btn{
-  background:linear-gradient(180deg,var(--accent2),var(--accent));
-  border:none;
-  color:#fff;
-  padding:12px 18px;
-  border-radius:14px;
-  font-weight:700;
-  cursor:pointer;
-}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.pill{
-  margin-top:12px;
-  padding:8px 12px;
-  border-radius:999px;
-  background:#1c1c30;
-  border:1px solid var(--line);
-  color:var(--muted);
-  display:inline-block;
-  font-size:13px;
-}
-.tableWrap{
-  margin-top:20px;
-  overflow:auto;
-  display:none;
-}
-table{width:100%;border-collapse:collapse;min-width:900px;}
-th,td{padding:10px;border-bottom:1px solid var(--line);}
-th{color:var(--muted);font-size:12px;text-align:left;}
-.right{text-align:right;}
-.copyBtn{
-  background:#222240;
-  border:1px solid var(--line);
-  border-radius:999px;
-  padding:6px 10px;
-  cursor:pointer;
-  color:#fff;
-  font-size:12px;
-}
-</style>
+  <style>
+    :root{
+      --bg1:#2b0b52;
+      --bg2:#0b0f1f;
+      --card:rgba(20,22,35,.78);
+      --card2:rgba(25,28,45,.72);
+      --stroke:rgba(255,255,255,.08);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.62);
+      --muted2:rgba(255,255,255,.48);
+      --accent:#7c3aed;
+      --accent2:#a855f7;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --radius:22px;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 15% 0%, rgba(168,85,247,.45), transparent 60%),
+        radial-gradient(800px 500px at 85% 10%, rgba(124,58,237,.35), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+      padding:28px 14px 40px;
+    }
+
+    .wrap{max-width:980px; margin:0 auto;}
+    h1{
+      margin: 10px 4px 18px;
+      font-size: 56px;
+      letter-spacing: .5px;
+      font-weight: 820;
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(10px);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+    }
+    @media (max-width:720px){
+      h1{font-size:52px}
+      .grid{grid-template-columns:1fr}
+    }
+
+    .field label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 10px 8px 8px;
+      letter-spacing:.2px;
+    }
+    .field input, .field select{
+      width:100%;
+      border-radius: 16px;
+      border:1px solid var(--stroke);
+      background: rgba(10,12,22,.55);
+      color: var(--text);
+      padding: 14px 14px;
+      outline:none;
+      font-size: 16px;
+    }
+    .field input::placeholder{color: rgba(255,255,255,.35)}
+    .field input:focus, .field select:focus{
+      border-color: rgba(168,85,247,.55);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+    }
+
+    .btnRow{
+      display:flex;
+      gap:12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-weight: 750;
+      letter-spacing:.2px;
+      color:white;
+      background: linear-gradient(180deg, var(--accent2), var(--accent));
+      box-shadow: 0 12px 30px rgba(124,58,237,.35);
+      min-width: 180px;
+    }
+    .btn:disabled{
+      cursor:not-allowed;
+      opacity:.55;
+      box-shadow:none;
+    }
+    .btn.secondary{
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--stroke);
+      box-shadow:none;
+      color: var(--text);
+    }
+
+    .hint{
+      margin: 12px 6px 0;
+      color: var(--muted2);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .status{
+      margin: 12px 6px 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,.18);
+      color: var(--muted);
+      font-size: 13px;
+      display:flex;
+      justify-content: space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .status b{color: var(--text); font-weight:700}
+
+    .tableWrap{
+      margin-top: 16px;
+      border-radius: 18px;
+      border:1px solid var(--stroke);
+      background: rgba(10,12,22,.40);
+      overflow: hidden;
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+    thead th{
+      position: sticky;
+      top: 0;
+      background: rgba(12,14,26,.92);
+      border-bottom: 1px solid var(--stroke);
+      text-align: left;
+      padding: 12px 12px;
+      color: rgba(255,255,255,.78);
+      font-size: 12px;
+      letter-spacing:.35px;
+      text-transform: uppercase;
+      z-index: 2;
+      white-space: nowrap;
+    }
+    tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    tbody tr:hover{background: rgba(255,255,255,.04)}
+    .num{text-align:right; font-variant-numeric: tabular-nums;}
+    .playerCell{white-space: normal; line-height:1.15; font-weight:700;}
+    .mini{font-size:12px; color: var(--muted)}
+    .copyBtn{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight: 750;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .toast{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 18px;
+      background: rgba(15,18,32,.92);
+      border:1px solid var(--stroke);
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: rgba(255,255,255,.85);
+      font-size: 13px;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease;
+    }
+    .toast.show{opacity:1}
+    .pill{
+      display:inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.85);
+      font-size:12px;
+    }
+  </style>
 </head>
 
 <body>
-<div class="wrap">
-<h1>PM Filter</h1>
+  <div class="wrap">
+    <h1>PM Filter</h1>
 
-<div class="card">
-<div class="row">
-<div>
-<label>CSV</label><br>
-<input type="file" id="file" accept=".csv">
-</div>
+    <div class="card">
+      <div class="grid">
+        <div class="field">
+          <label>CSV</label>
+          <input type="file" id="file" accept=".csv,text/csv" />
+        </div>
 
-<div>
-<label>Tour</label><br>
-<select id="tour">
-<option value="WTA">WTA</option>
-<option value="ATP">ATP / Challenger</option>
-</select>
-</div>
+        <div class="field">
+          <label>Tour</label>
+          <select id="tour">
+            <option value="WTA">WTA</option>
+            <option value="ATP">ATP</option>
+            <option value="CH">Challenger</option>
+          </select>
+        </div>
 
-<div>
-<label>Min Hold%</label><br>
-<select id="holdMin"></select>
-</div>
+        <div class="field">
+          <label>Min Hold% (filter)</label>
+          <input id="minHold" type="number" step="0.1" value="66" />
+        </div>
 
-<div>
-<label>Min Odds</label><br>
-<input id="minOdds" value="1.15">
-</div>
+        <div class="field">
+          <label>Min Odds</label>
+          <input id="minOdds" type="number" step="0.01" value="1.15" />
+        </div>
 
-<div>
-<label>Max Odds</label><br>
-<input id="maxOdds" value="1.70">
-</div>
+        <div class="field">
+          <label>Max Odds</label>
+          <input id="maxOdds" type="number" step="0.01" value="1.70" />
+        </div>
+      </div>
 
-<button class="btn" id="runBtn">Run Filter</button>
-</div>
+      <div class="btnRow">
+        <button id="run" class="btn">Run Filter</button>
+        <button id="export" class="btn secondary" disabled>Export Results (CSV)</button>
+      </div>
 
-<div id="status" class="pill">No file loaded.</div>
+      <div class="hint">
+        Filter is based on <span class="pill">SH %</span> + optional odds range.
+        Pred Hold is computed from <span class="pill">SPW %</span> vs opponent <span class="pill">RPW %</span> using couplets (row + opponent row below).
+        Match Win% is derived from Pred Hold (set DP + BO3), and is for information only.
+      </div>
 
-<div class="tableWrap" id="tableWrap">
-<table>
-<thead>
-<tr>
-<th>Copy</th>
-<th>Player</th>
-<th class="right">Odds</th>
-<th class="right">SH%</th>
-<th class="right">SPW%</th>
-<th class="right">RPW%</th>
-<th class="right">Pred Hold%</th>
-<th class="right">Match Win%</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
-</div>
-</div>
-</div>
+      <div id="status" class="status" style="display:none;"></div>
 
-<script>
+      <div id="tableWrap" class="tableWrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Copy</th>
+              <th>Player</th>
+              <th class="num">Odds</th>
+              <th class="num">SH%</th>
+              <th class="num">SPW%</th>
+              <th class="num">RPW%</th>
+              <th class="num">Pred Hold%</th>
+              <th class="num">Match Win%</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-// ---------- Utilities ----------
-const num = v => {
-  if(v==null) return NaN;
-  const x=parseFloat(String(v).replace('%','').replace(',','.'));
-  return isFinite(x)?x:NaN;
-};
-const clamp01 = x => Math.max(0.001,Math.min(0.999,x));
+  <div id="toast" class="toast">Copied</div>
 
-// ---------- Hold from point ----------
-function holdFromPoint(p){
-  p=clamp01(p);
-  const q=1-p;
-  const winBeforeDeuce=Math.pow(p,4)*(1+4*q+10*q*q);
-  const reachDeuce=20*Math.pow(p,3)*Math.pow(q,3);
-  const winFromDeuce=(p*p)/(1-2*p*q);
-  return winBeforeDeuce+reachDeuce*winFromDeuce;
-}
+  <script>
+    const els = {
+      file: document.getElementById('file'),
+      tour: document.getElementById('tour'),
+      minHold: document.getElementById('minHold'),
+      minOdds: document.getElementById('minOdds'),
+      maxOdds: document.getElementById('maxOdds'),
+      run: document.getElementById('run'),
+      export: document.getElementById('export'),
+      status: document.getElementById('status'),
+      tableWrap: document.getElementById('tableWrap'),
+      tbody: document.getElementById('tbody'),
+      toast: document.getElementById('toast'),
+    };
 
-// ---------- Stable Tiebreak DP ----------
-function tbWinProb(pAserve,pBserve,firstServer){
-  const pAonA=clamp01(pAserve);
-  const pAonB=clamp01(1-pBserve);
+    let lastFiltered = [];
 
-  const memo=new Map();
-  const key=(a,b,s,r,f)=>`${a}|${b}|${s}|${r}|${f}`;
-
-  function solve(a,b,server,rem,firstDone){
-    if(a>=7 && a-b>=2) return 1;
-    if(b>=7 && b-a>=2) return 0;
-
-    const k=key(a,b,server,rem,firstDone);
-    if(memo.has(k)) return memo.get(k);
-
-    const pA=(server===0)?pAonA:pAonB;
-
-    let nextServer=server,nextRem=rem,nextFirst=firstDone;
-
-    if(!firstDone){
-      nextFirst=true;
-      nextServer=1-server;
-      nextRem=2;
-    }else{
-      nextRem=rem-1;
-      if(nextRem===0){
-        nextServer=1-server;
-        nextRem=2;
-      }
+    function toast(msg){
+      els.toast.textContent = msg;
+      els.toast.classList.add('show');
+      setTimeout(()=>els.toast.classList.remove('show'), 900);
     }
 
-    const res=pA*solve(a+1,b,nextServer,nextRem,nextFirst)
-              +(1-pA)*solve(a,b+1,nextServer,nextRem,nextFirst);
-
-    memo.set(k,res);
-    return res;
-  }
-
-  return solve(0,0,firstServer,1,false);
-}
-
-// ---------- Set DP ----------
-function setWinProb(hA,hB,pAserve,pBserve,startServer){
-  const memo=new Map();
-  const key=(gA,gB,s)=>`${gA}|${gB}|${s}`;
-
-  function terminal(gA,gB){
-    if(gA>=6 && gA-gB>=2) return 1;
-    if(gB>=6 && gB-gA>=2) return 0;
-    if(gA===7) return 1;
-    if(gB===7) return 0;
-    return null;
-  }
-
-  function solve(gA,gB,server){
-    const t=terminal(gA,gB);
-    if(t!==null) return t;
-
-    if(gA===6 && gB===6)
-      return tbWinProb(pAserve,pBserve,server);
-
-    const k=key(gA,gB,server);
-    if(memo.has(k)) return memo.get(k);
-
-    const pAwin=(server===0)?hA:(1-hB);
-
-    const res=pAwin*solve(gA+1,gB,1-server)
-             +(1-pAwin)*solve(gA,gB+1,1-server);
-
-    memo.set(k,res);
-    return res;
-  }
-
-  return solve(0,0,startServer);
-}
-
-const matchWinFromSet=p=>p*p*(3-2*p);
-
-// ---------- UI Setup ----------
-const holdMinEl=document.getElementById('holdMin');
-for(let i=50;i<=90;i++){
-  const o=document.createElement('option');
-  o.value=i;o.textContent=i;
-  holdMinEl.appendChild(o);
-}
-holdMinEl.value="66";
-
-document.getElementById('tour').addEventListener('change',e=>{
-  holdMinEl.value=(e.target.value==="WTA")?"66":"80";
-});
-
-// ---------- Main ----------
-const runBtn=document.getElementById('runBtn');
-const statusEl=document.getElementById('status');
-const tbody=document.getElementById('tbody');
-const tableWrap=document.getElementById('tableWrap');
-
-runBtn.addEventListener('click',async()=>{
-  const file=document.getElementById('file').files[0];
-  if(!file){statusEl.textContent="Choose CSV";return;}
-
-  runBtn.disabled=true;
-  statusEl.textContent="Reading CSV...";
-  tbody.innerHTML="";
-  tableWrap.style.display="none";
-
-  const text=await file.text();
-  const parsed=Papa.parse(text.replace(/^\uFEFF/,''),{
-    header:true,
-    skipEmptyLines:true
-  });
-
-  const rows=parsed.data;
-  if(!rows.length){statusEl.textContent="No rows found";runBtn.disabled=false;return;}
-
-  const headers=Object.keys(rows[0]).map(h=>h.toLowerCase());
-  const find=h=>Object.keys(rows[0]).find(k=>k.toLowerCase().includes(h));
-
-  const kPlayer=find("player")||find("name");
-  const kSH=find("hold");
-  const kSPW=find("spw");
-  const kRPW=find("rpw");
-  const kOdds=find("odds");
-
-  if(!kPlayer||!kSH){
-    statusEl.textContent="Missing Player or Hold column";
-    runBtn.disabled=false;
-    return;
-  }
-
-  const holdMin=num(holdMinEl.value);
-  const minOdds=num(document.getElementById('minOdds').value);
-  const maxOdds=num(document.getElementById('maxOdds').value);
-
-  const out=[];
-
-  for(let i=0;i<rows.length;i++){
-    const r=rows[i];
-    const player=r[kPlayer];
-    const sh=num(r[kSH]);
-    const odds=kOdds?num(r[kOdds]):NaN;
-
-    if(!isFinite(sh)||sh<holdMin) continue;
-    if(isFinite(odds)&&(odds<minOdds||odds>maxOdds)) continue;
-
-    let spw=kSPW?num(r[kSPW]):NaN;
-    let rpw=kRPW?num(r[kRPW]):NaN;
-
-    const opp=rows[i+1]||{};
-    const oppSpw=kSPW?num(opp[kSPW]):NaN;
-    const oppRpw=kRPW?num(opp[kRPW]):NaN;
-
-    let predHold=NaN,matchWin=NaN;
-
-    if(isFinite(spw)&&isFinite(oppRpw)){
-      const pAserve=(spw/100+(1-oppRpw/100))/2;
-      predHold=holdFromPoint(pAserve)*100;
-
-      if(isFinite(oppSpw)&&isFinite(rpw)){
-        const pBserve=(oppSpw/100+(1-rpw/100))/2;
-        const hA=holdFromPoint(pAserve);
-        const hB=holdFromPoint(pBserve);
-
-        const pSet=0.5*setWinProb(hA,hB,pAserve,pBserve,0)
-                  +0.5*setWinProb(hA,hB,pAserve,pBserve,1);
-
-        matchWin=matchWinFromSet(pSet)*100;
-      }
+    function normKey(s){
+      return String(s ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[%]/g,'')
+        .replace(/[^a-z0-9]+/g,''); // collapse spaces/slashes
     }
 
-    out.push({player,odds,sh,spw,rpw,predHold,matchWin});
-  }
+    function toNum(v){
+      if (v === null || v === undefined) return null;
+      if (typeof v === 'number') return isFinite(v) ? v : null;
+      const t = String(v).trim();
+      if (!t) return null;
+      const x = Number(t.replace(/,/g,''));
+      return isFinite(x) ? x : null;
+    }
 
-  if(!out.length){
-    statusEl.textContent="No matches found";
-    runBtn.disabled=false;
-    return;
-  }
+    // Tennis hold probability from point-win p (advantage game)
+    function holdFromPointP(p){
+      p = Math.min(0.999999, Math.max(0.000001, p));
+      const q = 1 - p;
+      // P(win before deuce)
+      const preDeuce = Math.pow(p,4) * (1 + 4*q + 10*q*q);
+      // P(reach deuce)
+      const deuce = 20 * Math.pow(p,3) * Math.pow(q,3);
+      // P(win from deuce)
+      const fromDeuce = (p*p) / (1 - 2*p*q);
+      return preDeuce + deuce * fromDeuce;
+    }
 
-  const fmt=(x,d=1)=>isFinite(x)?x.toFixed(d):"";
+    // Given SPW% (server point win) and opponent RPW% (opponent return points won)
+    // estimate point win p vs that opponent as mean(SPW, 100 - oppRPW)
+    function pointP_vsOpponent(spwPct, oppRpwPct){
+      if (spwPct == null || oppRpwPct == null) return null;
+      const p1 = spwPct / 100;
+      const p2 = (100 - oppRpwPct) / 100;
+      return (p1 + p2) / 2;
+    }
 
-  for(const r of out){
-    const tr=document.createElement('tr');
+    // Set win probability using game-level DP with tiebreak approximation
+    function setWinProbFromHolds(hA, hB, pSrvA, pSrvB){
+      // assume each game is independent:
+      // when A serves: A holds with hA
+      // when B serves: A breaks with (1 - hB)
+      const holdA = hA;
+      const breakA_on_B = 1 - hB;
 
-    const tdCopy=document.createElement('td');
-    const btn=document.createElement('button');
-    btn.className="copyBtn";
-    btn.textContent="⚡ Copy";
-    btn.onclick=()=>navigator.clipboard.writeText(r.player);
-    tdCopy.appendChild(btn);
+      // We need probability A wins set from 0-0, with alternation of serve starting with A serving.
+      // We'll compute both serve-start cases and average (unknown who serves first).
+      function solve(startServerA){
+        // state: (gA, gB, nextServerA) where nextServerA is boolean
+        // DP up to 7 because we stop at terminal
+        const dp = new Map();
+        const key = (a,b,s)=> `${a}|${b}|${s?1:0}`;
+        dp.set(key(0,0,startServerA), 1);
 
-    tr.innerHTML+=`
-      <td style="display:none"></td>
-      <td>${r.player}</td>
-      <td class="right">${fmt(r.odds,2)}</td>
-      <td class="right">${fmt(r.sh)}</td>
-      <td class="right">${fmt(r.spw)}</td>
-      <td class="right">${fmt(r.rpw)}</td>
-      <td class="right">${fmt(r.predHold)}</td>
-      <td class="right">${fmt(r.matchWin)}</td>
-    `;
-    tr.replaceChild(tdCopy,tr.firstChild);
-    tbody.appendChild(tr);
-  }
+        let pWin = 0;
 
-  tableWrap.style.display="block";
-  statusEl.textContent=`Filtered ${out.length} players.`;
-  runBtn.disabled=false;
-});
-</script>
-</body>
-</html>
+        const isTerminal = (a,b)=>{
+          if (a>=6 || b>=6){
+            if (Math.abs(a-b)>=2) return true;
+            if (a===7 || b===7) return true; // 7-5 / 7-6
+          }
+          return false;
+        };
+
+        for (let a=0;a<=7;a++){
+          for (let b=0;b<=7;b++){
+            for (let sBit of [0,1]){
+              const pState = dp.get(key(a,b,!!sBit)) || 0;
+              if (!pState) continue;
+
+              if (isTerminal(a,b)){
+                if (a>b) pWin += pState;
+                continue;
+              }
+
+              // Tiebreak at 6-6
+              if (a===6 && b===6){
+                // approximate A point-win prob in TB
+                // pTB = average(A serve point p, A return point prob)
+                const pRetA = 1 - pSrvB;
+                const pTB = (pSrvA + pRetA) / 2;
+                const pTBwin = tiebreakWinProb(pTB);
+                pWin += pState * pTBwin;
+                continue;
+              }
+
+              const nextServerA = !!sBit;
+              const pGameWin = nextServerA ? holdA : breakA_on_B; // A wins game
+              const pGameLose = 1 - pGameWin;
+
+              // advance score, toggle server
+              const kWin = key(a+1, b, !nextServerA);
+              const kLose = key(a, b+1, !nextServerA);
+
+              dp.set(kWin, (dp.get(kWin)||0) + pState*pGameWin);
+              dp.set(kLose,(dp.get(kLose)||0)+ pState*pGameLose);
+            }
+          }
+        }
+        return pWin;
+      }
+
+      const p1 = solve(true);  // A serves first
+      const p2 = solve(false); // B serves first
+      return (p1 + p2) / 2;
+    }
+
+    // Tiebreak win probability to 7, win by 2, assuming constant point-win p
+    // (simple DP; no recursion)
+    function tiebreakWinProb(p){
+      p = Math.min(0.999999, Math.max(0.000001, p));
+      // dp[a][b] for 0..8 (we cap a/b at 8 for safety)
+      const dp = Array.from({length: 9}, ()=> Array(9).fill(0));
+      dp[0][0] = 1;
+
+      let win = 0;
+
+      for (let a=0;a<=8;a++){
+        for (let b=0;b<=8;b++){
+          const s = dp[a][b];
+          if (!s) continue;
+
+          // terminal: first to 7 with 2 clear
+          if ((a>=7 || b>=7) && Math.abs(a-b)>=2){
+            if (a>b) win += s;
+            continue;
+          }
+          if (a===8 && b===8) {
+            // very rare; approximate as 0.5 from here
+            win += s*0.5;
+            continue;
+          }
+
+          const na = Math.min(8, a+1);
+          const nb = Math.min(8, b+1);
+          dp[na][b] += s * p;
+          dp[a][nb] += s * (1-p);
+        }
+      }
+      return win;
+    }
+
+    // BO3 from set win probability s (independent sets approx)
+    function bo3FromSetProb(s){
+      return s*s*(3 - 2*s);
+    }
+
+    function downloadCSV(filename, rows){
+      const csv = Papa.unparse(rows);
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function render(rows){
+      els.tbody.innerHTML = '';
+      for (const r of rows){
+        const tr = document.createElement('tr');
+
+        const tdCopy = document.createElement('td');
+        const b = document.createElement('button');
+        b.className = 'copyBtn';
+        b.innerHTML = '📋 <span class="mini">Copy</span>';
+        b.addEventListener('click', async ()=>{
+          try{
+            await navigator.clipboard.writeText(r.player);
+            toast(`Copied: ${r.player}`);
+          }catch{
+            toast('Copy blocked (browser)');
+          }
+        });
+        tdCopy.appendChild(b);
+
+        const tdPlayer = document.createElement('td');
+        tdPlayer.className = 'playerCell';
+        tdPlayer.textContent = r.player;
+
+        const tdOdds = document.createElement('td');
+        tdOdds.className='num';
+        tdOdds.textContent = r.odds != null ? r.odds.toFixed(2) : '';
+
+        const tdSH = document.createElement('td');
+        tdSH.className='num';
+        tdSH.textContent = r.sh != null ? r.sh.toFixed(1) : '';
+
+        const tdSPW = document.createElement('td');
+        tdSPW.className='num';
+        tdSPW.textContent = r.spw != null ? r.spw.toFixed(1) : '';
+
+        const tdRPW = document.createElement('td');
+        tdRPW.className='num';
+        tdRPW.textContent = r.rpw != null ? r.rpw.toFixed(1) : '';
+
+        const tdPred = document.createElement('td');
+        tdPred.className='num';
+        tdPred.textContent = r.predHold != null ? r.predHold.toFixed(1) : '';
+
+        const tdMW = document.createElement('td');
+        tdMW.className='num';
+        tdMW.textContent = r.matchWin != null ? (r.matchWin*100).toFixed(1) : '';
+
+        tr.append(tdCopy, tdPlayer, tdOdds, tdSH, tdSPW, tdRPW, tdPred, tdMW);
+        els.tbody.appendChild(tr);
+      }
+      els.tableWrap.style.display = rows.length ? '' : 'none';
+    }
+
+    function showStatus(ok, msgLeft, msgRight=''){
+      els.status.style.display = '';
+      els.status.innerHTML = `<div>${ok ? '✅' : '⚠️'} <b>${msgLeft}</b></div><div>${msgRight}</div>`;
+    }
+
+    // Try to parse with auto delimiter first, then force tab if needed
+    function parseFile(file){
+      return new Promise((resolve, reject)=>{
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: false,
+          complete: (res)=>{
+            // If it looks like the header didn't split and we have 1 huge key, re-parse as tab-delimited.
+            const fields = res.meta?.fields || [];
+            if (fields.length <= 1){
+              Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: false,
+                delimiter: "\t",
+                complete: (res2)=> resolve(res2),
+                error: (e)=> reject(e)
+              });
+            } else {
+              resolve(res);
+            }
+          },
+          error: (e)=> reject(e)
+        });
+      });
+    }
+
+    els.run.addEventListener('click', async ()=>{
+      const file = els.file.files?.[0];
+      if (!file){
+        showStatus(false, 'Please choose a CSV file first.');
+        return;
+      }
+
+      els.run.disabled = true;
+      els.export.disabled = true;
+      showStatus(true, 'Reading CSV…', file.name);
+
+      try{
+        const res = await parseFile(file);
+        const rawRows = res.data || [];
+        const rawFields = res.meta?.fields || [];
+
+        // Build a mapping from normalised header -> original header
+        const headerMap = new Map();
+        for (const f of rawFields){
+          headerMap.set(normKey(f), f);
+        }
+
+        const kPlayer = headerMap.get('player') || headerMap.get('name') || headerMap.get('playername');
+        const kOdds   = headerMap.get('odds') || headerMap.get('price') || headerMap.get('matchodds');
+        const kSH     = headerMap.get('sh') || headerMap.get('servicehold') || headerMap.get('hold') || headerMap.get('sh%') || headerMap.get('shpct');
+        const kSPW    = headerMap.get('spw') || headerMap.get('spw%') || headerMap.get('spwpct');
+        const kRPW    = headerMap.get('rpw') || headerMap.get('rpw%') || headerMap.get('rpwpct');
+
+        if (!kPlayer || !kSH){
+          els.run.disabled = false;
+          showStatus(false, 'Missing Player or SH % column', `Found headers: ${rawFields.slice(0,12).join(' | ')}`);
+          return;
+        }
+
+        const minHold = toNum(els.minHold.value) ?? 0;
+        const minOdds = toNum(els.minOdds.value);
+        const maxOdds = toNum(els.maxOdds.value);
+
+        // Clean rows: keep only those that look like match rows (have player + SH numeric)
+        const cleaned = [];
+        for (const rr of rawRows){
+          const player = String(rr[kPlayer] ?? '').trim();
+          const sh = toNum(rr[kSH]);
+          if (!player || sh == null) continue;
+          // ignore footer header lines like "Surface: All"
+          if (/^surface:|^period:|^tour:|^match type:|^time:/i.test(player)) continue;
+
+          const odds = kOdds ? toNum(rr[kOdds]) : null;
+          const spw = kSPW ? toNum(rr[kSPW]) : null;
+          const rpw = kRPW ? toNum(rr[kRPW]) : null;
+
+          cleaned.push({ player, sh, odds, spw, rpw });
+        }
+
+        // Couplets: row i opponent is row i+1
+        const enriched = cleaned.map((row, i)=>{
+          const opp = cleaned[i+1] || null;
+
+          // PredHold for this row depends on its SPW and opponent RPW (row below)
+          let predHold = null;
+          let matchWin = null;
+
+          if (row.spw != null && opp?.rpw != null){
+            const pSrv = pointP_vsOpponent(row.spw, opp.rpw);
+            const h = holdFromPointP(pSrv);
+            predHold = h*100;
+
+            // For match win, we also need opponent pred hold to get set prob
+            if (opp.spw != null && row.rpw != null){
+              const pSrvOpp = pointP_vsOpponent(opp.spw, row.rpw);
+              const hOpp = holdFromPointP(pSrvOpp);
+
+              const setP = setWinProbFromHolds(h, hOpp, pSrv, pSrvOpp);
+              matchWin = bo3FromSetProb(setP);
+            }
+          }
+
+          return { ...row, predHold, matchWin };
+        });
+
+        // Apply filte
