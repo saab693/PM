@@ -1,523 +1,376 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PM Filter</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PM Filter</title>
 
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#6a00ff">
-  <link rel="icon" href="PM_icon.png">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-  <style>
-    :root{
-      --bg:#0b0b12;
-      --card:#151526;
-      --muted:#a7a7c2;
-      --text:#f2f2ff;
-      --line:rgba(255,255,255,.08);
-      --accent:#6a00ff;
-      --accent2:#9b4dff;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; background:radial-gradient(1200px 800px at 20% 0%, rgba(106,0,255,.18), transparent 60%) , var(--bg);
-      color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    }
-    .wrap{max-width:980px;margin:0 auto;padding:28px 18px 60px;}
-    h1{margin:8px 0 18px;font-size:52px;letter-spacing:.2px;font-weight:800;}
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-      border:1px solid var(--line);
-      box-shadow:var(--shadow);
-      border-radius:var(--radius);
-      padding:18px;
-    }
-    .row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;}
-    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px;}
-    input, select{
-      background:rgba(255,255,255,.04);
-      border:1px solid var(--line);
-      color:var(--text);
-      border-radius:14px;
-      padding:12px 12px;
-      font-size:16px;
-      outline:none;
-      min-width: 160px;
-    }
-    input[type="file"]{padding:10px; min-width:260px;}
-    .btn{
-      background:linear-gradient(180deg, var(--accent2), var(--accent));
-      border:none; color:#fff;
-      font-weight:750; font-size:18px;
-      padding:14px 18px;
-      border-radius:16px;
-      cursor:pointer;
-      box-shadow: 0 10px 25px rgba(106,0,255,.25);
-      min-width: 160px;
-    }
-    .btn[disabled]{opacity:.45; cursor:not-allowed; box-shadow:none;}
-    .subtle{font-size:13px;color:var(--muted);margin-top:8px;}
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px; border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--muted);
-      font-size:12px;
-    }
-    .tableWrap{
-      margin-top:16px;
-      overflow:auto;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.02);
-      display:none;
-    }
-    table{width:100%; border-collapse:separate; border-spacing:0; min-width: 940px;}
-    thead th{
-      position:sticky; top:0;
-      background:rgba(12,12,20,.92);
-      backdrop-filter: blur(10px);
-      font-size:12px;
-      color:var(--muted);
-      text-align:left;
-      padding:12px 12px;
-      border-bottom:1px solid var(--line);
-      white-space:nowrap;
-    }
-    tbody td{
-      padding:12px 12px;
-      border-bottom:1px solid var(--line);
-      vertical-align:middle;
-      white-space:nowrap;
-    }
-    tbody tr:hover{background:rgba(255,255,255,.03);}
-    .name{font-weight:750; max-width:240px; overflow:hidden; text-overflow:ellipsis;}
-    .right{text-align:right;font-variant-numeric:tabular-nums;}
-    .copyBtn{
-      display:inline-flex; align-items:center; gap:8px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      color:var(--text);
-      border-radius:999px;
-      padding:8px 10px;
-      cursor:pointer;
-      font-size:13px;
-    }
-    .copyBtn small{color:var(--muted); font-weight:600}
-  </style>
+<style>
+:root{
+  --bg:#0b0b12;
+  --card:#151526;
+  --muted:#a7a7c2;
+  --text:#f2f2ff;
+  --line:rgba(255,255,255,.08);
+  --accent:#6a00ff;
+  --accent2:#9b4dff;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:linear-gradient(180deg,#1a0033,#0b0b12);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+}
+.wrap{max-width:1000px;margin:auto;padding:30px 20px;}
+h1{font-size:48px;margin:0 0 20px;font-weight:800;}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:20px;
+}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+label{font-size:12px;color:var(--muted);}
+input,select{
+  background:#1c1c30;
+  border:1px solid var(--line);
+  color:#fff;
+  padding:10px;
+  border-radius:12px;
+  min-width:140px;
+}
+.btn{
+  background:linear-gradient(180deg,var(--accent2),var(--accent));
+  border:none;
+  color:#fff;
+  padding:12px 18px;
+  border-radius:14px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.pill{
+  margin-top:12px;
+  padding:8px 12px;
+  border-radius:999px;
+  background:#1c1c30;
+  border:1px solid var(--line);
+  color:var(--muted);
+  display:inline-block;
+  font-size:13px;
+}
+.tableWrap{
+  margin-top:20px;
+  overflow:auto;
+  display:none;
+}
+table{width:100%;border-collapse:collapse;min-width:900px;}
+th,td{padding:10px;border-bottom:1px solid var(--line);}
+th{color:var(--muted);font-size:12px;text-align:left;}
+.right{text-align:right;}
+.copyBtn{
+  background:#222240;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:6px 10px;
+  cursor:pointer;
+  color:#fff;
+  font-size:12px;
+}
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <h1>PM Filter</h1>
+<div class="wrap">
+<h1>PM Filter</h1>
 
-    <div class="card">
-      <div class="row">
-        <div>
-          <label>CSV file</label>
-          <input type="file" id="file" accept=".csv,text/csv" />
-        </div>
+<div class="card">
+<div class="row">
+<div>
+<label>CSV</label><br>
+<input type="file" id="file" accept=".csv">
+</div>
 
-        <div>
-          <label>Tour</label>
-          <select id="tour">
-            <option value="WTA">WTA</option>
-            <option value="ATP">ATP/Challenger</option>
-          </select>
-        </div>
+<div>
+<label>Tour</label><br>
+<select id="tour">
+<option value="WTA">WTA</option>
+<option value="ATP">ATP / Challenger</option>
+</select>
+</div>
 
-        <div>
-          <label>Min Hold% (filter)</label>
-          <select id="holdMin"></select>
-        </div>
+<div>
+<label>Min Hold%</label><br>
+<select id="holdMin"></select>
+</div>
 
-        <div>
-          <label>Min odds</label>
-          <input id="minOdds" inputmode="decimal" value="1.15" />
-        </div>
+<div>
+<label>Min Odds</label><br>
+<input id="minOdds" value="1.15">
+</div>
 
-        <div>
-          <label>Max odds</label>
-          <input id="maxOdds" inputmode="decimal" value="1.70" />
-        </div>
+<div>
+<label>Max Odds</label><br>
+<input id="maxOdds" value="1.70">
+</div>
 
-        <button class="btn" id="runBtn">Run Filter</button>
-      </div>
+<button class="btn" id="runBtn">Run Filter</button>
+</div>
 
-      <div class="subtle">
-        Filters: Hold% ≥ selected threshold (by Tour), optional odds range if odds column present.
-        Pred Hold uses SPW/RPW couplets (row + opponent row below). Match Win% derived from Pred Holds (set DP + tiebreak DP, then BO3).
-      </div>
+<div id="status" class="pill">No file loaded.</div>
 
-      <div class="row" style="align-items:center;margin-top:10px;">
-        <span class="pill" id="status">No file loaded.</span>
-      </div>
-
-      <div class="tableWrap" id="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Copy</th>
-              <th>Player</th>
-              <th class="right">Odds</th>
-              <th class="right">SH%</th>
-              <th class="right">SPW%</th>
-              <th class="right">RPW%</th>
-              <th class="right">Pred Hold%</th>
-              <th class="right">Match Win%</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+<div class="tableWrap" id="tableWrap">
+<table>
+<thead>
+<tr>
+<th>Copy</th>
+<th>Player</th>
+<th class="right">Odds</th>
+<th class="right">SH%</th>
+<th class="right">SPW%</th>
+<th class="right">RPW%</th>
+<th class="right">Pred Hold%</th>
+<th class="right">Match Win%</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</div>
+</div>
 
 <script>
-  // ----- number parsing -----
-  const num = (v) => {
-    if (v === null || v === undefined) return NaN;
-    const s = String(v).trim().replace('%','').replace(',','.');
-    const x = parseFloat(s);
-    return Number.isFinite(x) ? x : NaN;
-  };
-  const clamp01 = (x) => Math.max(0.001, Math.min(0.999, x));
 
-  // ----- core tennis math -----
-  function holdFromPoint(p){
-    p = clamp01(p);
-    const q = 1 - p;
-    const winBeforeDeuce = Math.pow(p,4) * (1 + 4*q + 10*q*q);
-    const reachDeuce = 20 * Math.pow(p,3) * Math.pow(q,3);
-    const winFromDeuce = (p*p) / (1 - 2*p*q);
-    return winBeforeDeuce + reachDeuce * winFromDeuce;
-  }
+// ---------- Utilities ----------
+const num = v => {
+  if(v==null) return NaN;
+  const x=parseFloat(String(v).replace('%','').replace(',','.'));
+  return isFinite(x)?x:NaN;
+};
+const clamp01 = x => Math.max(0.001,Math.min(0.999,x));
 
-  function tbWinProb(pAserve, pBserve, firstServer){
-    const pAwinOnAserve = clamp01(pAserve);
-    const pAwinOnBserve = clamp01(1 - pBserve);
+// ---------- Hold from point ----------
+function holdFromPoint(p){
+  p=clamp01(p);
+  const q=1-p;
+  const winBeforeDeuce=Math.pow(p,4)*(1+4*q+10*q*q);
+  const reachDeuce=20*Math.pow(p,3)*Math.pow(q,3);
+  const winFromDeuce=(p*p)/(1-2*p*q);
+  return winBeforeDeuce+reachDeuce*winFromDeuce;
+}
 
-    function serverAtPoint(k){
-      if (k === 1) return firstServer;
-      const t = k - 2;
-      const block = Math.floor(t / 2);
-      const isFirst = (block % 2) === 1;
-      return isFirst ? firstServer : (1-firstServer);
-    }
+// ---------- Stable Tiebreak DP ----------
+function tbWinProb(pAserve,pBserve,firstServer){
+  const pAonA=clamp01(pAserve);
+  const pAonB=clamp01(1-pBserve);
 
-    const memo = new Map();
-    function key(a,b,pt){ return `${a}|${b}|${pt}`; }
+  const memo=new Map();
+  const key=(a,b,s,r,f)=>`${a}|${b}|${s}|${r}|${f}`;
 
-    function solve(a,b,pt){
-      if (a >= 7 && a - b >= 2) return 1;
-      if (b >= 7 && b - a >= 2) return 0;
-      const k = key(a,b,pt);
-      if (memo.has(k)) return memo.get(k);
-      const server = serverAtPoint(pt);
-      const pA = (server === 0) ? pAwinOnAserve : pAwinOnBserve;
-      const res = pA * solve(a+1,b,pt+1) + (1-pA) * solve(a,b+1,pt+1);
-      memo.set(k,res);
-      return res;
-    }
-    return solve(0,0,1);
-  }
+  function solve(a,b,server,rem,firstDone){
+    if(a>=7 && a-b>=2) return 1;
+    if(b>=7 && b-a>=2) return 0;
 
-  function setWinProb(hA, hB, pAserve, pBserve, startServer){
-    hA = clamp01(hA); hB = clamp01(hB);
+    const k=key(a,b,server,rem,firstDone);
+    if(memo.has(k)) return memo.get(k);
 
-    const memo = new Map();
-    function K(gA,gB,s){ return `${gA}|${gB}|${s}`; }
+    const pA=(server===0)?pAonA:pAonB;
 
-    function terminal(gA,gB){
-      if (gA >= 6 && gA - gB >= 2) return 1;
-      if (gB >= 6 && gB - gA >= 2) return 0;
-      if (gA === 7) return 1;
-      if (gB === 7) return 0;
-      return null;
-    }
+    let nextServer=server,nextRem=rem,nextFirst=firstDone;
 
-    function solve(gA,gB,nextServer){
-      const t = terminal(gA,gB);
-      if (t !== null) return t;
-
-      if (gA === 6 && gB === 6){
-        const firstServer = nextServer;
-        return tbWinProb(pAserve, pBserve, firstServer);
+    if(!firstDone){
+      nextFirst=true;
+      nextServer=1-server;
+      nextRem=2;
+    }else{
+      nextRem=rem-1;
+      if(nextRem===0){
+        nextServer=1-server;
+        nextRem=2;
       }
-
-      const key = K(gA,gB,nextServer);
-      if (memo.has(key)) return memo.get(key);
-
-      let pAwinGame = (nextServer === 0) ? hA : (1 - hB);
-      const res = pAwinGame * solve(gA+1,gB,1-nextServer) + (1-pAwinGame) * solve(gA,gB+1,1-nextServer);
-      memo.set(key,res);
-      return res;
     }
 
-    return solve(0,0,startServer);
+    const res=pA*solve(a+1,b,nextServer,nextRem,nextFirst)
+              +(1-pA)*solve(a,b+1,nextServer,nextRem,nextFirst);
+
+    memo.set(k,res);
+    return res;
   }
 
-  function matchWinFromSet(pSet){
-    pSet = Math.max(0, Math.min(1, pSet));
-    return pSet*pSet*(3 - 2*pSet);
-  }
+  return solve(0,0,firstServer,1,false);
+}
 
-  // ----- column detection -----
-  function normalizeHeader(h){
-    return String(h || '')
-      .replace(/^\uFEFF/,'')  // strip BOM
-      .trim()
-      .toLowerCase();
-  }
+// ---------- Set DP ----------
+function setWinProb(hA,hB,pAserve,pBserve,startServer){
+  const memo=new Map();
+  const key=(gA,gB,s)=>`${gA}|${gB}|${s}`;
 
-  function findKey(row, candidates){
-    const keys = Object.keys(row || {});
-    for (const cand of candidates){
-      const c = cand.toLowerCase();
-      const hit = keys.find(k => normalizeHeader(k) === c);
-      if (hit) return hit;
-    }
-    for (const cand of candidates){
-      const c = cand.toLowerCase();
-      const hit = keys.find(k => normalizeHeader(k).includes(c));
-      if (hit) return hit;
-    }
+  function terminal(gA,gB){
+    if(gA>=6 && gA-gB>=2) return 1;
+    if(gB>=6 && gB-gA>=2) return 0;
+    if(gA===7) return 1;
+    if(gB===7) return 0;
     return null;
   }
 
-  // ----- UI defaults -----
-  const holdMinEl = document.getElementById('holdMin');
-  const tourEl = document.getElementById('tour');
+  function solve(gA,gB,server){
+    const t=terminal(gA,gB);
+    if(t!==null) return t;
 
-  function fillHoldDropdown(){
-    holdMinEl.innerHTML = '';
-    for (let v=50; v<=90; v++){
-      const opt = document.createElement('option');
-      opt.value = String(v);
-      opt.textContent = `${v}`;
-      holdMinEl.appendChild(opt);
-    }
-    holdMinEl.value = (tourEl.value === 'WTA') ? '66' : '80';
+    if(gA===6 && gB===6)
+      return tbWinProb(pAserve,pBserve,server);
+
+    const k=key(gA,gB,server);
+    if(memo.has(k)) return memo.get(k);
+
+    const pAwin=(server===0)?hA:(1-hB);
+
+    const res=pAwin*solve(gA+1,gB,1-server)
+             +(1-pAwin)*solve(gA,gB+1,1-server);
+
+    memo.set(k,res);
+    return res;
   }
-  tourEl.addEventListener('change', () => {
-    holdMinEl.value = (tourEl.value === 'WTA') ? '66' : '80';
+
+  return solve(0,0,startServer);
+}
+
+const matchWinFromSet=p=>p*p*(3-2*p);
+
+// ---------- UI Setup ----------
+const holdMinEl=document.getElementById('holdMin');
+for(let i=50;i<=90;i++){
+  const o=document.createElement('option');
+  o.value=i;o.textContent=i;
+  holdMinEl.appendChild(o);
+}
+holdMinEl.value="66";
+
+document.getElementById('tour').addEventListener('change',e=>{
+  holdMinEl.value=(e.target.value==="WTA")?"66":"80";
+});
+
+// ---------- Main ----------
+const runBtn=document.getElementById('runBtn');
+const statusEl=document.getElementById('status');
+const tbody=document.getElementById('tbody');
+const tableWrap=document.getElementById('tableWrap');
+
+runBtn.addEventListener('click',async()=>{
+  const file=document.getElementById('file').files[0];
+  if(!file){statusEl.textContent="Choose CSV";return;}
+
+  runBtn.disabled=true;
+  statusEl.textContent="Reading CSV...";
+  tbody.innerHTML="";
+  tableWrap.style.display="none";
+
+  const text=await file.text();
+  const parsed=Papa.parse(text.replace(/^\uFEFF/,''),{
+    header:true,
+    skipEmptyLines:true
   });
-  fillHoldDropdown();
 
-  // ----- copy -----
-  const statusEl = document.getElementById('status');
-  function copyText(txt){
-    const done = () => {
-      statusEl.textContent = `Copied: ${txt}`;
-      setTimeout(()=>{ statusEl.textContent = 'Ready.'; }, 900);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(done).catch(done);
-    } else {
-      const ta = document.createElement('textarea');
-      ta.value = txt;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); } catch(e){}
-      document.body.removeChild(ta);
-      done();
-    }
+  const rows=parsed.data;
+  if(!rows.length){statusEl.textContent="No rows found";runBtn.disabled=false;return;}
+
+  const headers=Object.keys(rows[0]).map(h=>h.toLowerCase());
+  const find=h=>Object.keys(rows[0]).find(k=>k.toLowerCase().includes(h));
+
+  const kPlayer=find("player")||find("name");
+  const kSH=find("hold");
+  const kSPW=find("spw");
+  const kRPW=find("rpw");
+  const kOdds=find("odds");
+
+  if(!kPlayer||!kSH){
+    statusEl.textContent="Missing Player or Hold column";
+    runBtn.disabled=false;
+    return;
   }
 
-  // ----- main -----
-  const fileEl = document.getElementById('file');
-  const runBtn = document.getElementById('runBtn');
-  const tbody = document.getElementById('tbody');
-  const tableWrap = document.getElementById('tableWrap');
+  const holdMin=num(holdMinEl.value);
+  const minOdds=num(document.getElementById('minOdds').value);
+  const maxOdds=num(document.getElementById('maxOdds').value);
 
-  async function readFileAsText(file){
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result || ''));
-      fr.onerror = () => reject(new Error('File read error'));
-      fr.readAsText(file);
-    });
+  const out=[];
+
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    const player=r[kPlayer];
+    const sh=num(r[kSH]);
+    const odds=kOdds?num(r[kOdds]):NaN;
+
+    if(!isFinite(sh)||sh<holdMin) continue;
+    if(isFinite(odds)&&(odds<minOdds||odds>maxOdds)) continue;
+
+    let spw=kSPW?num(r[kSPW]):NaN;
+    let rpw=kRPW?num(r[kRPW]):NaN;
+
+    const opp=rows[i+1]||{};
+    const oppSpw=kSPW?num(opp[kSPW]):NaN;
+    const oppRpw=kRPW?num(opp[kRPW]):NaN;
+
+    let predHold=NaN,matchWin=NaN;
+
+    if(isFinite(spw)&&isFinite(oppRpw)){
+      const pAserve=(spw/100+(1-oppRpw/100))/2;
+      predHold=holdFromPoint(pAserve)*100;
+
+      if(isFinite(oppSpw)&&isFinite(rpw)){
+        const pBserve=(oppSpw/100+(1-rpw/100))/2;
+        const hA=holdFromPoint(pAserve);
+        const hB=holdFromPoint(pBserve);
+
+        const pSet=0.5*setWinProb(hA,hB,pAserve,pBserve,0)
+                  +0.5*setWinProb(hA,hB,pAserve,pBserve,1);
+
+        matchWin=matchWinFromSet(pSet)*100;
+      }
+    }
+
+    out.push({player,odds,sh,spw,rpw,predHold,matchWin});
   }
 
-  runBtn.addEventListener('click', async () => {
-    const f = fileEl.files && fileEl.files[0];
-    if (!f){
-      statusEl.textContent = 'Choose a CSV first.';
-      return;
-    }
+  if(!out.length){
+    statusEl.textContent="No matches found";
+    runBtn.disabled=false;
+    return;
+  }
 
-    runBtn.disabled = true;
-    statusEl.textContent = 'Reading CSV...';
-    tbody.innerHTML = '';
-    tableWrap.style.display = 'none';
+  const fmt=(x,d=1)=>isFinite(x)?x.toFixed(d):"";
 
-    try{
-      let text = await readFileAsText(f);
-      // Strip BOM at start of file (very common on exports)
-      text = text.replace(/^\uFEFF/, '');
+  for(const r of out){
+    const tr=document.createElement('tr');
 
-      // Parse text (more reliable than passing File on mobile)
-      const parsed = Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        delimiter: "",        // auto-detect
-        quoteChar: '"',
-        escapeChar: '"',
-      });
+    const tdCopy=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.className="copyBtn";
+    btn.textContent="⚡ Copy";
+    btn.onclick=()=>navigator.clipboard.writeText(r.player);
+    tdCopy.appendChild(btn);
 
-      if (parsed.errors && parsed.errors.length){
-        // If there are parse errors, show the first one but still try to proceed.
-        const e = parsed.errors[0];
-        statusEl.textContent = `CSV parse warning: ${e.message || 'unknown error'}`;
-      }
+    tr.innerHTML+=`
+      <td style="display:none"></td>
+      <td>${r.player}</td>
+      <td class="right">${fmt(r.odds,2)}</td>
+      <td class="right">${fmt(r.sh)}</td>
+      <td class="right">${fmt(r.spw)}</td>
+      <td class="right">${fmt(r.rpw)}</td>
+      <td class="right">${fmt(r.predHold)}</td>
+      <td class="right">${fmt(r.matchWin)}</td>
+    `;
+    tr.replaceChild(tdCopy,tr.firstChild);
+    tbody.appendChild(tr);
+  }
 
-      const rows = (parsed.data || []).filter(r => Object.values(r).some(v => String(v||'').trim() !== ''));
-      if (!rows.length){
-        statusEl.textContent = 'No rows found.';
-        return;
-      }
-
-      const sample = rows[0];
-
-      const kPlayer = findKey(sample, ['Player','Name']);
-      const kOdds   = findKey(sample, ['Odds','Price']);
-      const kSH     = findKey(sample, ['SH %','SH%','Hold','Hold %','Service Hold','Service Hold %']);
-      const kSPW    = findKey(sample, ['SPW %','SPW%','SPW']);
-      const kRPW    = findKey(sample, ['RPW %','RPW%','RPW']);
-
-      if (!kPlayer || !kSH){
-        const headers = Object.keys(sample).map(h => `"${h}"`).join(', ');
-        statusEl.textContent = `Missing required columns (Player + SH%). Found headers: ${headers}`;
-        return;
-      }
-
-      const holdMin = num(holdMinEl.value);
-      const minOdds = num(document.getElementById('minOdds').value);
-      const maxOdds = num(document.getElementById('maxOdds').value);
-
-      const out = [];
-      for (let i=0; i<rows.length; i++){
-        const r = rows[i];
-        const player = String(r[kPlayer] || '').trim();
-        if (!player) continue;
-
-        const sh = num(r[kSH]);
-        const odds = kOdds ? num(r[kOdds]) : NaN;
-
-        let oddsOk = true;
-        if (kOdds && Number.isFinite(odds) && Number.isFinite(minOdds) && Number.isFinite(maxOdds)){
-          oddsOk = (odds >= minOdds && odds <= maxOdds);
-        }
-        const shOk = Number.isFinite(sh) ? (sh >= holdMin) : false;
-
-        let spw = kSPW ? num(r[kSPW]) : NaN;
-        let rpw = kRPW ? num(r[kRPW]) : NaN;
-
-        const opp = (i+1 < rows.length) ? rows[i+1] : null;
-        const oppSpw = (opp && kSPW) ? num(opp[kSPW]) : NaN;
-        const oppRpw = (opp && kRPW) ? num(opp[kRPW]) : NaN;
-
-        let predHold = NaN;
-        let matchWin = NaN;
-
-        if (Number.isFinite(spw) && Number.isFinite(oppRpw)){
-          const pServe = clamp01((spw/100 + (1 - oppRpw/100))/2);
-          predHold = holdFromPoint(pServe) * 100;
-
-          if (Number.isFinite(oppSpw) && Number.isFinite(rpw)){
-            const pAserve = clamp01((spw/100 + (1 - oppRpw/100))/2);
-            const pBserve = clamp01((oppSpw/100 + (1 - rpw/100))/2);
-
-            const hA = holdFromPoint(pAserve);
-            const hB = holdFromPoint(pBserve);
-
-            const pSetA =
-              0.5 * setWinProb(hA, hB, pAserve, pBserve, 0) +
-              0.5 * setWinProb(hA, hB, pAserve, pBserve, 1);
-
-            matchWin = matchWinFromSet(pSetA) * 100;
-          }
-        }
-
-        if (shOk && oddsOk){
-          out.push({ player, odds, sh, spw, rpw, predHold, matchWin });
-        }
-      }
-
-      if (!out.length){
-        statusEl.textContent = 'No matches found for current filters.';
-        return;
-      }
-
-      const fmt = (x, d=1) => Number.isFinite(x) ? x.toFixed(d) : '';
-      const fmt2 = (x) => Number.isFinite(x) ? x.toFixed(2) : '';
-
-      for (const r of out){
-        const tr = document.createElement('tr');
-
-        const tdCopy = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.className = 'copyBtn';
-        btn.type = 'button';
-        btn.innerHTML = '⚡ <span>Copy</span> <small>Name</small>';
-        btn.addEventListener('click', ()=>copyText(r.player));
-        tdCopy.appendChild(btn);
-
-        const tdName = document.createElement('td');
-        tdName.className = 'name';
-        tdName.textContent = r.player;
-
-        const tdOdds = document.createElement('td');
-        tdOdds.className = 'right';
-        tdOdds.textContent = fmt2(r.odds);
-
-        const tdSH = document.createElement('td');
-        tdSH.className = 'right';
-        tdSH.textContent = fmt(r.sh,1);
-
-        const tdSPW = document.createElement('td');
-        tdSPW.className = 'right';
-        tdSPW.textContent = fmt(r.spw,1);
-
-        const tdRPW = document.createElement('td');
-        tdRPW.className = 'right';
-        tdRPW.textContent = fmt(r.rpw,1);
-
-        const tdPH = document.createElement('td');
-        tdPH.className = 'right';
-        tdPH.textContent = fmt(r.predHold,1);
-
-        const tdMW = document.createElement('td');
-        tdMW.className = 'right';
-        tdMW.textContent = fmt(r.matchWin,1);
-
-        tr.appendChild(tdCopy);
-        tr.appendChild(tdName);
-        tr.appendChild(tdOdds);
-        tr.appendChild(tdSH);
-        tr.appendChild(tdSPW);
-        tr.appendChild(tdRPW);
-        tr.appendChild(tdPH);
-        tr.appendChild(tdMW);
-
-        tbody.appendChild(tr);
-      }
-
-      tableWrap.style.display = 'block';
-      statusEl.textContent = `Filtered ${out.length} players.`;
-
-    } catch(err){
-      statusEl.textContent = `Error: ${err && err.message ? err.message : 'unknown'}`;
-    } finally {
-      runBtn.disabled = false;
-    }
-  });
+  tableWrap.style.display="block";
+  statusEl.textContent=`Filtered ${out.length} players.`;
+  runBtn.disabled=false;
+});
 </script>
 </body>
 </html>
