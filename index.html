@@ -11,8 +11,19 @@
   .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:14px}
   input{width:100%;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);
         background:rgba(0,0,0,.25);color:#fff;font-size:16px}
-  #status{margin-top:10px;opacity:.75;font-size:13px}
-  .wrap{margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:16px;overflow:auto;display:none}
+  #status{margin-top:10px;opacity:.8;font-size:13px;line-height:1.35}
+
+  /* IMPORTANT: give the table area height so it shows on mobile */
+  .wrap{
+    margin-top:12px;
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:16px;
+    overflow:auto;
+    display:none;
+    max-height:65vh;
+    background:rgba(0,0,0,.18);
+  }
+
   table{border-collapse:collapse;min-width:900px;width:100%}
   th,td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
   th{font-size:12px;opacity:.7;text-align:left;position:sticky;top:0;background:#101427}
@@ -45,6 +56,7 @@
 
 <script>
 const $=id=>document.getElementById(id);
+
 const clamp=p=>Math.min(.999999,Math.max(.000001,p));
 const n=v=>{
   v=(v??"").toString().trim();
@@ -68,14 +80,14 @@ function pServe(spwA, rpwB){
   return clamp(((spwA/100) + ((100-rpwB)/100))/2);
 }
 
-// Normalize headers to avoid invisible spaces / % signs
+// Normalize headers to avoid weird spaces / % signs
 const hk=s=>s.toString().trim().toLowerCase().replace(/%/g,"").replace(/[^a-z0-9]+/g,"");
 
 async function parseFile(file){
   const parse = (delim)=>new Promise((resolve,reject)=>{
     Papa.parse(file,{header:true,skipEmptyLines:true,delimiter:delim,complete:resolve,error:reject});
   });
-  let r = await parse("");                 // auto
+  let r = await parse("");                  // auto
   if((r.meta?.fields||[]).length<=1) r = await parse("\t"); // TSV fallback
   return r;
 }
@@ -83,6 +95,7 @@ async function parseFile(file){
 $("file").addEventListener("change", async (e)=>{
   const file=e.target.files?.[0];
   if(!file) return;
+
   $("status").textContent="Parsing…";
   $("wrap").style.display="none";
   $("tb").innerHTML="";
@@ -100,7 +113,8 @@ $("file").addEventListener("change", async (e)=>{
     const kRPW    = map.get("rpw");
 
     if(!kPlayer || !kSPW || !kRPW){
-      $("status").textContent=`Missing columns. Need Player, SPW, RPW. Found: ${fields.slice(0,12).join(" | ")}`;
+      $("status").textContent =
+        `Missing columns. Need Player, SPW, RPW.\nFound headers: ${fields.join(" | ")}`;
       return;
     }
 
@@ -136,7 +150,11 @@ $("file").addEventListener("change", async (e)=>{
       </tr>
     `).join("");
 
-    $("wrap").style.display = out.length ? "" : "none";
+    if(out.length){
+      // FORCE it visible on mobile (instead of style.display = "")
+      $("wrap").style.display = "block";
+    }
+
     $("status").textContent = `Loaded ${out.length} rows. Pred Hold uses opponent RPW from the row below.`;
 
   }catch(err){
