@@ -20,9 +20,6 @@
       --line:rgba(255,255,255,.08);
       --accent:#6a00ff;
       --accent2:#9b4dff;
-      --btn:#6a00ff;
-      --btnText:#fff;
-      --pill:rgba(255,255,255,.06);
       --shadow: 0 10px 30px rgba(0,0,0,.35);
       --radius:18px;
     }
@@ -31,14 +28,8 @@
       margin:0; background:radial-gradient(1200px 800px at 20% 0%, rgba(106,0,255,.18), transparent 60%) , var(--bg);
       color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
-    .wrap{
-      max-width:980px; margin:0 auto; padding:28px 18px 60px;
-    }
-    h1{
-      margin:8px 0 18px;
-      font-size:52px; letter-spacing:.2px;
-      font-weight:800;
-    }
+    .wrap{max-width:980px;margin:0 auto;padding:28px 18px 60px;}
+    h1{margin:8px 0 18px;font-size:52px;letter-spacing:.2px;font-weight:800;}
     .card{
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
       border:1px solid var(--line);
@@ -46,17 +37,8 @@
       border-radius:var(--radius);
       padding:18px;
     }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
-    }
-    .row{
-      display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;
-    }
-    label{
-      display:block; font-size:12px; color:var(--muted); margin:0 0 6px;
-    }
+    .row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px;}
     input, select{
       background:rgba(255,255,255,.04);
       border:1px solid var(--line);
@@ -67,50 +49,36 @@
       outline:none;
       min-width: 160px;
     }
-    input[type="file"]{
-      padding:10px;
-      min-width: 260px;
-    }
+    input[type="file"]{padding:10px; min-width:260px;}
     .btn{
       background:linear-gradient(180deg, var(--accent2), var(--accent));
-      border:none;
-      color:var(--btnText);
-      font-weight:750;
-      font-size:18px;
+      border:none; color:#fff;
+      font-weight:750; font-size:18px;
       padding:14px 18px;
       border-radius:16px;
       cursor:pointer;
       box-shadow: 0 10px 25px rgba(106,0,255,.25);
       min-width: 160px;
     }
-    .btn:active{transform:translateY(1px)}
-    .subtle{
-      font-size:13px; color:var(--muted);
-      margin-top:8px;
-    }
+    .btn[disabled]{opacity:.45; cursor:not-allowed; box-shadow:none;}
+    .subtle{font-size:13px;color:var(--muted);margin-top:8px;}
     .pill{
       display:inline-flex; align-items:center; gap:8px;
       padding:8px 10px; border-radius:999px;
       border:1px solid var(--line);
-      background:var(--pill);
+      background:rgba(255,255,255,.06);
       color:var(--muted);
       font-size:12px;
     }
-
-    /* Table */
     .tableWrap{
       margin-top:16px;
       overflow:auto;
       border-radius:16px;
       border:1px solid var(--line);
       background:rgba(255,255,255,.02);
+      display:none;
     }
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      min-width: 940px;
-    }
+    table{width:100%; border-collapse:separate; border-spacing:0; min-width: 940px;}
     thead th{
       position:sticky; top:0;
       background:rgba(12,12,20,.92);
@@ -128,17 +96,11 @@
       vertical-align:middle;
       white-space:nowrap;
     }
-    tbody tr:hover{ background:rgba(255,255,255,.03); }
-    .name{
-      font-weight:750;
-      max-width:240px;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
+    tbody tr:hover{background:rgba(255,255,255,.03);}
+    .name{font-weight:750; max-width:240px; overflow:hidden; text-overflow:ellipsis;}
+    .right{text-align:right;font-variant-numeric:tabular-nums;}
     .copyBtn{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
+      display:inline-flex; align-items:center; gap:8px;
       border:1px solid var(--line);
       background:rgba(255,255,255,.03);
       color:var(--text);
@@ -148,10 +110,6 @@
       font-size:13px;
     }
     .copyBtn small{color:var(--muted); font-weight:600}
-    .right{
-      text-align:right;
-      font-variant-numeric: tabular-nums;
-    }
   </style>
 </head>
 
@@ -160,52 +118,48 @@
     <h1>PM Filter</h1>
 
     <div class="card">
-      <div class="grid">
-        <div class="row">
-          <div>
-            <label>CSV file</label>
-            <input type="file" id="file" accept=".csv" />
-          </div>
-
-          <div>
-            <label>Tour</label>
-            <select id="tour">
-              <option value="WTA">WTA</option>
-              <option value="ATP">ATP/Challenger</option>
-            </select>
-          </div>
-
-          <div>
-            <label>Min Hold% (filter)</label>
-            <select id="holdMin">
-              <!-- populated by JS -->
-            </select>
-          </div>
-
-          <div>
-            <label>Min odds</label>
-            <input id="minOdds" inputmode="decimal" value="1.15" />
-          </div>
-
-          <div>
-            <label>Max odds</label>
-            <input id="maxOdds" inputmode="decimal" value="1.70" />
-          </div>
-
-          <button class="btn" id="runBtn">Run Filter</button>
+      <div class="row">
+        <div>
+          <label>CSV file</label>
+          <input type="file" id="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="subtle">
-          Filters: Hold% ≥ selected threshold (by Tour), optional odds range if odds column present.
-          Pred Hold uses SPW/RPW couplets (row + opponent row below). Match Win% derived from Pred Holds (set DP + tiebreak DP, then BO3).
+        <div>
+          <label>Tour</label>
+          <select id="tour">
+            <option value="WTA">WTA</option>
+            <option value="ATP">ATP/Challenger</option>
+          </select>
         </div>
 
-        <div class="row" style="align-items:center;">
-          <span class="pill" id="status">No file loaded.</span>
+        <div>
+          <label>Min Hold% (filter)</label>
+          <select id="holdMin"></select>
         </div>
+
+        <div>
+          <label>Min odds</label>
+          <input id="minOdds" inputmode="decimal" value="1.15" />
+        </div>
+
+        <div>
+          <label>Max odds</label>
+          <input id="maxOdds" inputmode="decimal" value="1.70" />
+        </div>
+
+        <button class="btn" id="runBtn">Run Filter</button>
       </div>
 
-      <div class="tableWrap" style="display:none;" id="tableWrap">
+      <div class="subtle">
+        Filters: Hold% ≥ selected threshold (by Tour), optional odds range if odds column present.
+        Pred Hold uses SPW/RPW couplets (row + opponent row below). Match Win% derived from Pred Holds (set DP + tiebreak DP, then BO3).
+      </div>
+
+      <div class="row" style="align-items:center;margin-top:10px;">
+        <span class="pill" id="status">No file loaded.</span>
+      </div>
+
+      <div class="tableWrap" id="tableWrap">
         <table>
           <thead>
             <tr>
@@ -226,17 +180,16 @@
   </div>
 
 <script>
-  // ---------- Helpers ----------
+  // ----- number parsing -----
   const num = (v) => {
     if (v === null || v === undefined) return NaN;
     const s = String(v).trim().replace('%','').replace(',','.');
     const x = parseFloat(s);
     return Number.isFinite(x) ? x : NaN;
   };
-
   const clamp01 = (x) => Math.max(0.001, Math.min(0.999, x));
 
-  // Hold% from point win prob p on serve (standard game Markov)
+  // ----- core tennis math -----
   function holdFromPoint(p){
     p = clamp01(p);
     const q = 1 - p;
@@ -246,60 +199,38 @@
     return winBeforeDeuce + reachDeuce * winFromDeuce;
   }
 
-  // Tiebreak win probability for Player A given:
-  // pA = point win prob on A's serve
-  // pB = point win prob on B's serve (i.e., A wins point when B serves = 1 - pB_serverWinsPoint)
-  // firstServer: 0 => A serves first point, 1 => B serves first point
-  //
-  // Serve pattern in TB: 1 point (first server), then 2 points other, then 2 points first, etc.
   function tbWinProb(pAserve, pBserve, firstServer){
-    // When B serves, A wins point with (1 - pBserveWinForB) = 1 - pBserve
     const pAwinOnAserve = clamp01(pAserve);
     const pAwinOnBserve = clamp01(1 - pBserve);
 
-    // Determine server for point k (1-indexed)
     function serverAtPoint(k){
-      // k=1 served by firstServer
       if (k === 1) return firstServer;
-      // Points 2-3 other server, 4-5 first server, 6-7 other, 8-9 first, ...
       const t = k - 2;
-      const block = Math.floor(t / 2); // each block size 2 points
-      // block 0 => other, 1 => first, 2 => other, 3 => first ...
+      const block = Math.floor(t / 2);
       const isFirst = (block % 2) === 1;
       return isFirst ? firstServer : (1-firstServer);
     }
 
-    // DP on points up to 7 with 2 clear
     const memo = new Map();
     function key(a,b,pt){ return `${a}|${b}|${pt}`; }
 
     function solve(a,b,pt){
-      // terminal:
       if (a >= 7 && a - b >= 2) return 1;
       if (b >= 7 && b - a >= 2) return 0;
-
       const k = key(a,b,pt);
       if (memo.has(k)) return memo.get(k);
-
       const server = serverAtPoint(pt);
       const pA = (server === 0) ? pAwinOnAserve : pAwinOnBserve;
-
       const res = pA * solve(a+1,b,pt+1) + (1-pA) * solve(a,b+1,pt+1);
       memo.set(k,res);
       return res;
     }
-
     return solve(0,0,1);
   }
 
-  // Set win probability for Player A using game win probs on serve:
-  // hA = P(A holds on A serve)
-  // hB = P(B holds on B serve)
-  // startServer: 0 => A serves first game, 1 => B serves first game
   function setWinProb(hA, hB, pAserve, pBserve, startServer){
     hA = clamp01(hA); hB = clamp01(hB);
 
-    // DP state: (gA, gB, nextServer)
     const memo = new Map();
     function K(gA,gB,s){ return `${gA}|${gB}|${s}`; }
 
@@ -315,26 +246,15 @@
       const t = terminal(gA,gB);
       if (t !== null) return t;
 
-      // tiebreak at 6-6
       if (gA === 6 && gB === 6){
-        // first server of TB is whoever would serve next in the set:
-        const firstServer = nextServer; // 0=A,1=B
+        const firstServer = nextServer;
         return tbWinProb(pAserve, pBserve, firstServer);
       }
 
       const key = K(gA,gB,nextServer);
       if (memo.has(key)) return memo.get(key);
 
-      // probability A wins the next game depends on server
-      let pAwinGame;
-      if (nextServer === 0){
-        // A serves: A wins game with hA
-        pAwinGame = hA;
-      }else{
-        // B serves: A wins game with (1 - hB)
-        pAwinGame = 1 - hB;
-      }
-
+      let pAwinGame = (nextServer === 0) ? hA : (1 - hB);
       const res = pAwinGame * solve(gA+1,gB,1-nextServer) + (1-pAwinGame) * solve(gA,gB+1,1-nextServer);
       memo.set(key,res);
       return res;
@@ -343,66 +263,62 @@
     return solve(0,0,startServer);
   }
 
-  // Match win prob (BO3) from set win prob
   function matchWinFromSet(pSet){
     pSet = Math.max(0, Math.min(1, pSet));
     return pSet*pSet*(3 - 2*pSet);
   }
 
-  // ---------- UI Defaults ----------
+  // ----- column detection -----
+  function normalizeHeader(h){
+    return String(h || '')
+      .replace(/^\uFEFF/,'')  // strip BOM
+      .trim()
+      .toLowerCase();
+  }
+
+  function findKey(row, candidates){
+    const keys = Object.keys(row || {});
+    for (const cand of candidates){
+      const c = cand.toLowerCase();
+      const hit = keys.find(k => normalizeHeader(k) === c);
+      if (hit) return hit;
+    }
+    for (const cand of candidates){
+      const c = cand.toLowerCase();
+      const hit = keys.find(k => normalizeHeader(k).includes(c));
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  // ----- UI defaults -----
   const holdMinEl = document.getElementById('holdMin');
   const tourEl = document.getElementById('tour');
 
   function fillHoldDropdown(){
     holdMinEl.innerHTML = '';
-    // 50..90
     for (let v=50; v<=90; v++){
       const opt = document.createElement('option');
       opt.value = String(v);
       opt.textContent = `${v}`;
       holdMinEl.appendChild(opt);
     }
-    // defaults by tour:
     holdMinEl.value = (tourEl.value === 'WTA') ? '66' : '80';
   }
-
   tourEl.addEventListener('change', () => {
-    // keep user choice if already changed manually, but if empty set defaults
-    if (!holdMinEl.value) fillHoldDropdown();
-    // if user hasn't changed since last tour change, we just apply sensible defaults:
     holdMinEl.value = (tourEl.value === 'WTA') ? '66' : '80';
   });
-
   fillHoldDropdown();
 
-  // ---------- Main ----------
-  const fileEl = document.getElementById('file');
-  const runBtn = document.getElementById('runBtn');
+  // ----- copy -----
   const statusEl = document.getElementById('status');
-  const tbody = document.getElementById('tbody');
-  const tableWrap = document.getElementById('tableWrap');
-
-  function findKey(row, candidates){
-    const keys = Object.keys(row || {});
-    const lower = keys.map(k => [k, k.toLowerCase()]);
-    for (const cand of candidates){
-      const c = cand.toLowerCase();
-      const hit = lower.find(([orig, low]) => low === c);
-      if (hit) return hit[0];
-    }
-    // allow contains
-    for (const cand of candidates){
-      const c = cand.toLowerCase();
-      const hit = lower.find(([orig, low]) => low.includes(c));
-      if (hit) return hit[0];
-    }
-    return null;
-  }
-
   function copyText(txt){
-    // Clipboard API + fallback
+    const done = () => {
+      statusEl.textContent = `Copied: ${txt}`;
+      setTimeout(()=>{ statusEl.textContent = 'Ready.'; }, 900);
+    };
     if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).catch(()=>{});
+      navigator.clipboard.writeText(txt).then(done).catch(done);
     } else {
       const ta = document.createElement('textarea');
       ta.value = txt;
@@ -410,184 +326,197 @@
       ta.select();
       try { document.execCommand('copy'); } catch(e){}
       document.body.removeChild(ta);
+      done();
     }
-    statusEl.textContent = `Copied: ${txt}`;
-    setTimeout(()=>{ statusEl.textContent = 'Ready.'; }, 900);
   }
 
-  runBtn.addEventListener('click', () => {
+  // ----- main -----
+  const fileEl = document.getElementById('file');
+  const runBtn = document.getElementById('runBtn');
+  const tbody = document.getElementById('tbody');
+  const tableWrap = document.getElementById('tableWrap');
+
+  async function readFileAsText(file){
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result || ''));
+      fr.onerror = () => reject(new Error('File read error'));
+      fr.readAsText(file);
+    });
+  }
+
+  runBtn.addEventListener('click', async () => {
     const f = fileEl.files && fileEl.files[0];
     if (!f){
       statusEl.textContent = 'Choose a CSV first.';
       return;
     }
 
-    const tour = tourEl.value; // WTA or ATP/Ch
-    const holdMin = num(holdMinEl.value);
-    const minOdds = num(document.getElementById('minOdds').value);
-    const maxOdds = num(document.getElementById('maxOdds').value);
-
+    runBtn.disabled = true;
     statusEl.textContent = 'Reading CSV...';
     tbody.innerHTML = '';
     tableWrap.style.display = 'none';
 
-    Papa.parse(f, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (res) => {
-        const rows = (res.data || []).filter(r => Object.values(r).some(v => String(v||'').trim() !== ''));
-        if (!rows.length){
-          statusEl.textContent = 'No rows found.';
-          return;
-        }
+    try{
+      let text = await readFileAsText(f);
+      // Strip BOM at start of file (very common on exports)
+      text = text.replace(/^\uFEFF/, '');
 
-        // detect columns
-        const sample = rows[0];
+      // Parse text (more reliable than passing File on mobile)
+      const parsed = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        delimiter: "",        // auto-detect
+        quoteChar: '"',
+        escapeChar: '"',
+      });
 
-        const kPlayer = findKey(sample, ['Player','Name']);
-        const kOdds   = findKey(sample, ['Odds','Price']);
-        const kSH     = findKey(sample, ['SH %','SH%','Hold','Hold %','Service Hold','Service Hold %']);
-        const kSPW    = findKey(sample, ['SPW %','SPW%','SPW']);
-        const kRPW    = findKey(sample, ['RPW %','RPW%','RPW']);
-
-        if (!kPlayer || !kSH){
-          statusEl.textContent = 'Could not find Player and SH% columns.';
-          return;
-        }
-
-        // Build outputs while preserving original order; use couplets for pred hold + match win
-        const out = [];
-        for (let i=0; i<rows.length; i++){
-          const r = rows[i];
-          const player = String(r[kPlayer] || '').trim();
-          if (!player) continue;
-
-          const sh = num(r[kSH]);
-          const odds = kOdds ? num(r[kOdds]) : NaN;
-
-          // odds filter only if odds exist and user provided bounds
-          let oddsOk = true;
-          if (kOdds && Number.isFinite(odds) && Number.isFinite(minOdds) && Number.isFinite(maxOdds)){
-            oddsOk = (odds >= minOdds && odds <= maxOdds);
-          }
-
-          // SH filter
-          const shOk = Number.isFinite(sh) ? (sh >= holdMin) : false;
-
-          // Pred hold from SPW/RPW couplets (info only)
-          let spw = kSPW ? num(r[kSPW]) : NaN;
-          let rpw = kRPW ? num(r[kRPW]) : NaN;
-
-          // opponent row (couplet)
-          const opp = (i+1 < rows.length) ? rows[i+1] : null;
-          const oppSpw = (opp && kSPW) ? num(opp[kSPW]) : NaN;
-          const oppRpw = (opp && kRPW) ? num(opp[kRPW]) : NaN;
-
-          // Calculate pred holds only if we have both sides SPW/RPW
-          let predHold = NaN;
-          let matchWin = NaN;
-
-          if (Number.isFinite(spw) && Number.isFinite(oppRpw)){
-            const pServe = clamp01((spw/100 + (1 - oppRpw/100))/2);
-            predHold = holdFromPoint(pServe) * 100;
-
-            // Only compute match win if both sides have what we need (pServe + holds)
-            if (Number.isFinite(oppSpw) && Number.isFinite(rpw)){
-              const pAserve = clamp01((spw/100 + (1 - oppRpw/100))/2);
-              const pBserve = clamp01((oppSpw/100 + (1 - rpw/100))/2);
-
-              const hA = holdFromPoint(pAserve);
-              const hB = holdFromPoint(pBserve);
-
-              // set win averaged over who serves first
-              const pSetA =
-                0.5 * setWinProb(hA, hB, pAserve, pBserve, 0) +
-                0.5 * setWinProb(hA, hB, pAserve, pBserve, 1);
-
-              matchWin = matchWinFromSet(pSetA) * 100;
-            }
-          }
-
-          if (shOk && oddsOk){
-            out.push({
-              player,
-              odds,
-              sh,
-              spw,
-              rpw,
-              predHold,
-              matchWin
-            });
-          }
-        }
-
-        if (!out.length){
-          statusEl.textContent = 'No matches found for current filters.';
-          return;
-        }
-
-        // Render
-        const fmt = (x, d=1) => Number.isFinite(x) ? x.toFixed(d) : '';
-        const fmt2 = (x) => Number.isFinite(x) ? x.toFixed(2) : '';
-
-        for (const r of out){
-          const tr = document.createElement('tr');
-
-          const tdCopy = document.createElement('td');
-          const btn = document.createElement('button');
-          btn.className = 'copyBtn';
-          btn.type = 'button';
-          btn.innerHTML = '⚡ <span>Copy</span> <small>Name</small>';
-          btn.addEventListener('click', ()=>copyText(r.player));
-          tdCopy.appendChild(btn);
-
-          const tdName = document.createElement('td');
-          tdName.className = 'name';
-          tdName.textContent = r.player;
-
-          const tdOdds = document.createElement('td');
-          tdOdds.className = 'right';
-          tdOdds.textContent = fmt2(r.odds);
-
-          const tdSH = document.createElement('td');
-          tdSH.className = 'right';
-          tdSH.textContent = fmt(r.sh,1);
-
-          const tdSPW = document.createElement('td');
-          tdSPW.className = 'right';
-          tdSPW.textContent = fmt(r.spw,1);
-
-          const tdRPW = document.createElement('td');
-          tdRPW.className = 'right';
-          tdRPW.textContent = fmt(r.rpw,1);
-
-          const tdPH = document.createElement('td');
-          tdPH.className = 'right';
-          tdPH.textContent = fmt(r.predHold,1);
-
-          const tdMW = document.createElement('td');
-          tdMW.className = 'right';
-          tdMW.textContent = fmt(r.matchWin,1);
-
-          tr.appendChild(tdCopy);
-          tr.appendChild(tdName);
-          tr.appendChild(tdOdds);
-          tr.appendChild(tdSH);
-          tr.appendChild(tdSPW);
-          tr.appendChild(tdRPW);
-          tr.appendChild(tdPH);
-          tr.appendChild(tdMW);
-
-          tbody.appendChild(tr);
-        }
-
-        tableWrap.style.display = 'block';
-        statusEl.textContent = `Filtered ${out.length} players.`;
-      },
-      error: () => {
-        statusEl.textContent = 'CSV parse error.';
+      if (parsed.errors && parsed.errors.length){
+        // If there are parse errors, show the first one but still try to proceed.
+        const e = parsed.errors[0];
+        statusEl.textContent = `CSV parse warning: ${e.message || 'unknown error'}`;
       }
-    });
+
+      const rows = (parsed.data || []).filter(r => Object.values(r).some(v => String(v||'').trim() !== ''));
+      if (!rows.length){
+        statusEl.textContent = 'No rows found.';
+        return;
+      }
+
+      const sample = rows[0];
+
+      const kPlayer = findKey(sample, ['Player','Name']);
+      const kOdds   = findKey(sample, ['Odds','Price']);
+      const kSH     = findKey(sample, ['SH %','SH%','Hold','Hold %','Service Hold','Service Hold %']);
+      const kSPW    = findKey(sample, ['SPW %','SPW%','SPW']);
+      const kRPW    = findKey(sample, ['RPW %','RPW%','RPW']);
+
+      if (!kPlayer || !kSH){
+        const headers = Object.keys(sample).map(h => `"${h}"`).join(', ');
+        statusEl.textContent = `Missing required columns (Player + SH%). Found headers: ${headers}`;
+        return;
+      }
+
+      const holdMin = num(holdMinEl.value);
+      const minOdds = num(document.getElementById('minOdds').value);
+      const maxOdds = num(document.getElementById('maxOdds').value);
+
+      const out = [];
+      for (let i=0; i<rows.length; i++){
+        const r = rows[i];
+        const player = String(r[kPlayer] || '').trim();
+        if (!player) continue;
+
+        const sh = num(r[kSH]);
+        const odds = kOdds ? num(r[kOdds]) : NaN;
+
+        let oddsOk = true;
+        if (kOdds && Number.isFinite(odds) && Number.isFinite(minOdds) && Number.isFinite(maxOdds)){
+          oddsOk = (odds >= minOdds && odds <= maxOdds);
+        }
+        const shOk = Number.isFinite(sh) ? (sh >= holdMin) : false;
+
+        let spw = kSPW ? num(r[kSPW]) : NaN;
+        let rpw = kRPW ? num(r[kRPW]) : NaN;
+
+        const opp = (i+1 < rows.length) ? rows[i+1] : null;
+        const oppSpw = (opp && kSPW) ? num(opp[kSPW]) : NaN;
+        const oppRpw = (opp && kRPW) ? num(opp[kRPW]) : NaN;
+
+        let predHold = NaN;
+        let matchWin = NaN;
+
+        if (Number.isFinite(spw) && Number.isFinite(oppRpw)){
+          const pServe = clamp01((spw/100 + (1 - oppRpw/100))/2);
+          predHold = holdFromPoint(pServe) * 100;
+
+          if (Number.isFinite(oppSpw) && Number.isFinite(rpw)){
+            const pAserve = clamp01((spw/100 + (1 - oppRpw/100))/2);
+            const pBserve = clamp01((oppSpw/100 + (1 - rpw/100))/2);
+
+            const hA = holdFromPoint(pAserve);
+            const hB = holdFromPoint(pBserve);
+
+            const pSetA =
+              0.5 * setWinProb(hA, hB, pAserve, pBserve, 0) +
+              0.5 * setWinProb(hA, hB, pAserve, pBserve, 1);
+
+            matchWin = matchWinFromSet(pSetA) * 100;
+          }
+        }
+
+        if (shOk && oddsOk){
+          out.push({ player, odds, sh, spw, rpw, predHold, matchWin });
+        }
+      }
+
+      if (!out.length){
+        statusEl.textContent = 'No matches found for current filters.';
+        return;
+      }
+
+      const fmt = (x, d=1) => Number.isFinite(x) ? x.toFixed(d) : '';
+      const fmt2 = (x) => Number.isFinite(x) ? x.toFixed(2) : '';
+
+      for (const r of out){
+        const tr = document.createElement('tr');
+
+        const tdCopy = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.className = 'copyBtn';
+        btn.type = 'button';
+        btn.innerHTML = '⚡ <span>Copy</span> <small>Name</small>';
+        btn.addEventListener('click', ()=>copyText(r.player));
+        tdCopy.appendChild(btn);
+
+        const tdName = document.createElement('td');
+        tdName.className = 'name';
+        tdName.textContent = r.player;
+
+        const tdOdds = document.createElement('td');
+        tdOdds.className = 'right';
+        tdOdds.textContent = fmt2(r.odds);
+
+        const tdSH = document.createElement('td');
+        tdSH.className = 'right';
+        tdSH.textContent = fmt(r.sh,1);
+
+        const tdSPW = document.createElement('td');
+        tdSPW.className = 'right';
+        tdSPW.textContent = fmt(r.spw,1);
+
+        const tdRPW = document.createElement('td');
+        tdRPW.className = 'right';
+        tdRPW.textContent = fmt(r.rpw,1);
+
+        const tdPH = document.createElement('td');
+        tdPH.className = 'right';
+        tdPH.textContent = fmt(r.predHold,1);
+
+        const tdMW = document.createElement('td');
+        tdMW.className = 'right';
+        tdMW.textContent = fmt(r.matchWin,1);
+
+        tr.appendChild(tdCopy);
+        tr.appendChild(tdName);
+        tr.appendChild(tdOdds);
+        tr.appendChild(tdSH);
+        tr.appendChild(tdSPW);
+        tr.appendChild(tdRPW);
+        tr.appendChild(tdPH);
+        tr.appendChild(tdMW);
+
+        tbody.appendChild(tr);
+      }
+
+      tableWrap.style.display = 'block';
+      statusEl.textContent = `Filtered ${out.length} players.`;
+
+    } catch(err){
+      statusEl.textContent = `Error: ${err && err.message ? err.message : 'unknown'}`;
+    } finally {
+      runBtn.disabled = false;
+    }
   });
 </script>
 </body>
